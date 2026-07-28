@@ -31,15 +31,19 @@ export interface RelayWSHooks {
 const MAX_BACKOFF_MS = 30_000;
 
 export class RelayWS {
+  private readonly url: string;
+  private readonly hooks: RelayWSHooks;
   private ws: WebSocket | null = null;
   private closed = false;
   private retry = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(
-    private readonly url: string,
-    private readonly hooks: RelayWSHooks,
-  ) {}
+  // Explicit field assignment (not constructor parameter properties) because
+  // the app compiles with `erasableSyntaxOnly`.
+  constructor(url: string, hooks: RelayWSHooks) {
+    this.url = url;
+    this.hooks = hooks;
+  }
 
   /** Open the socket and keep it alive until `stop()`. */
   start(): void {

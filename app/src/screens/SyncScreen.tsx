@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useI18n, type DictKey } from '../i18n';
-import { toBnDigits } from '../lib/time';
-import { timeAgo } from '../lib/time';
+import { timeAgo, toBnDigits } from '../lib/time';
 import { useSyncStore, type SyncStatus } from '../store/syncStore';
 import { QrScanner } from '../sync/QrScanner';
 
