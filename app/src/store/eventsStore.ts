@@ -2,6 +2,7 @@ import { createEvent, type NewEventInput, type SetuEvent } from '@setu/shared';
 import { create } from 'zustand';
 import { ingestEvents, liveEvents, pruneEvents } from '../db/events';
 import { useAppStore } from './appStore';
+import { useSyncStore } from './syncStore';
 
 interface EventsState {
   /** true once the initial load from IndexedDB has completed */

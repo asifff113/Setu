@@ -6,3 +6,4 @@ export * from './crypto.js';
 export * from './codec.js';
 export * from './publishers.js';
 export * from './views.js';
+export * from './wire.js';

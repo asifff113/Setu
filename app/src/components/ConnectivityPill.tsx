@@ -1,32 +1,27 @@
-import { useEffect, useState } from 'react';
-import { useI18n } from '../i18n';
+import { useI18n, type DictKey } from '../i18n';
+import { useSyncStore, type SyncStatus } from '../store/syncStore';
 
 /**
- * Browser online/offline as a first pass. Offline is styled as a routine
- * state, not an error — the Sync screen (Phase 4-5) will upgrade this same
- * 🟢/🟡/🔴 language to real relay/local-node connection state.
+ * The 🟢 relay / 🟡 local node / 🔴 offline pill, driven by the real relay
+ * connection state (syncStore). Offline is styled as a routine state, not an
+ * error — the whole point of Setu is that it keeps working with no network.
  */
+const PILL: Record<SyncStatus, { icon: string; key: DictKey }> = {
+  relay: { icon: '🟢', key: 'connRelay' },
+  node: { icon: '🟡', key: 'connNode' },
+  connecting: { icon: '🟡', key: 'connConnecting' },
+  offline: { icon: '🔴', key: 'connOffline' },
+};
+
 export function ConnectivityPill() {
   const { t } = useI18n();
-  const [online, setOnline] = useState(
-    () => typeof navigator === 'undefined' || navigator.onLine,
-  );
-
-  useEffect(() => {
-    const goOnline = () => setOnline(true);
-    const goOffline = () => setOnline(false);
-    window.addEventListener('online', goOnline);
-    window.addEventListener('offline', goOffline);
-    return () => {
-      window.removeEventListener('online', goOnline);
-      window.removeEventListener('offline', goOffline);
-    };
-  }, []);
+  const status = useSyncStore((s) => s.status);
+  const pill = PILL[status];
 
   return (
     <div className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-xs text-white/70">
-      <span>{online ? '🟢' : '🔴'}</span>
-      <span>{online ? t('connOnline') : t('connOffline')}</span>
+      <span aria-hidden="true">{pill.icon}</span>
+      <span>{t(pill.key)}</span>
     </div>
   );
 }
