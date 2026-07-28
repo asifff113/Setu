@@ -51,6 +51,9 @@ export const useEventsStore = create<EventsState>((set, get) => ({
     });
     await ingestEvents([event]);
     await get().refresh();
+    // Fan the new event out over whatever relay we're connected to; if we're
+    // offline it stays local and syncs opportunistically on next connect.
+    useSyncStore.getState().push([event]);
     return event;
   },
 }));

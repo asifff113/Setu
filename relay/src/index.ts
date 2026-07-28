@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { existsSync, readFileSync } from 'node:fs';
+import type { Server } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadRelayIdentity } from './identity.js';
@@ -63,8 +64,10 @@ const server = serve({ fetch: app.fetch, port }, (info) => {
 });
 
 // The `serve()` return value is the Node HTTP server; attach the WS upgrade
-// handler to it so /ws shares the same port as the app + REST routes.
-attachSync(server, store);
+// handler to it so /ws shares the same port as the app + REST routes. Its type
+// is the http1/http2 union, but the default node-server config is a plain
+// http.Server (which is what emits 'upgrade'), so narrow it here.
+attachSync(server as unknown as Server, store);
 
 // Drop expired events periodically so the cache stays bounded on a long-running
 // relay. `.unref()` keeps this timer from holding the process open on its own.

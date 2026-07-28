@@ -70,7 +70,64 @@ export const dict = {
   submittedPerson: { bn: '📋 রিপোর্ট পাঠানো হয়েছে', en: '📋 Report sent' },
 
   connOnline: { bn: 'অনলাইন', en: 'Online' },
-  connOffline: { bn: 'অফলাইন — স্বাভাবিক, স্থানীয় ডেটা নিরাপদ', en: 'Offline — normal, your data is safe locally' },
+  connOffline: { bn: 'অফলাইন — স্বাভাবিক, ডেটা নিরাপদ', en: 'Offline — normal, data is safe' },
+  connRelay: { bn: 'রিলে যুক্ত', en: 'Relay connected' },
+  connNode: { bn: 'স্থানীয় নোড', en: 'Local node' },
+  connConnecting: { bn: 'সংযোগ হচ্ছে…', en: 'Connecting…' },
+
+  // Sync screen
+  syncTitle: { bn: 'সিঙ্ক', en: 'Sync' },
+  syncRelayTitle: { bn: 'রিলে সংযোগ', en: 'Relay connection' },
+  syncRelayHint: {
+    bn: 'ইন্টারনেট থাকলে ক্লাউড রিলে, একই ওয়াই-ফাইতে ল্যাপটপ নোড — স্বয়ংক্রিয়ভাবে সংযোগ ও লাইভ সিঙ্ক হয়।',
+    en: 'Cloud relay when online, a laptop node on the same Wi-Fi — connects and live-syncs automatically.',
+  },
+  syncLastSync: { bn: 'শেষ সিঙ্ক', en: 'Last sync' },
+  syncNever: { bn: 'এখনও হয়নি', en: 'not yet' },
+  syncStatusRelay: { bn: 'রিলে যুক্ত', en: 'Relay connected' },
+  syncStatusNode: { bn: 'স্থানীয় নোড যুক্ত', en: 'Local node connected' },
+  syncStatusConnecting: { bn: 'সংযোগ হচ্ছে…', en: 'Connecting…' },
+  syncStatusOffline: { bn: 'অফলাইন — স্বাভাবিক', en: 'Offline — normal' },
+
+  syncNodeTitle: { bn: '💻 স্থানীয় নোডে যুক্ত হোন', en: '💻 Connect to local node' },
+  syncNodeHint: {
+    bn: 'ল্যাপটপের ঠিকানা টাইপ করুন বা /node-qr স্ক্যান করুন। যেমনঃ 192.168.0.5:8787',
+    en: 'Type the laptop address or scan its /node-qr. e.g. 192.168.0.5:8787',
+  },
+  syncNodePlaceholder: { bn: '192.168.0.5:8787', en: '192.168.0.5:8787' },
+  syncNodeScan: { bn: 'স্ক্যান', en: 'Scan' },
+  syncNodeConnect: { bn: 'যুক্ত হোন', en: 'Connect' },
+  syncNodeDisconnect: { bn: 'স্থানীয় নোড বন্ধ করুন', en: 'Disconnect local node' },
+  syncNodeScanTitle: { bn: 'নোড QR স্ক্যান করুন', en: 'Scan node QR' },
+  syncNodeScanHint: {
+    bn: 'ল্যাপটপের স্ক্রিনে থাকা /node-qr কোডের দিকে ক্যামেরা ধরুন।',
+    en: "Point the camera at the /node-qr code on the laptop's screen.",
+  },
+  nodeUrlInvalid: { bn: 'ঠিকানা সঠিক নয়', en: "That address doesn't look right" },
+
+  syncStatsTitle: { bn: 'স্থানীয় সঞ্চয়', en: 'Local storage' },
+  syncEventCount: { bn: 'ইভেন্ট', en: 'events' },
+  syncStorageUsed: { bn: 'ব্যবহৃত', en: 'used' },
+
+  syncComingTitle: { bn: 'পরবর্তী ধাপে (Phase 5)', en: 'Coming next (Phase 5)' },
+  syncBeamSend: { bn: 'বিম পাঠান', en: 'Beam send' },
+  syncBeamScan: { bn: 'স্ক্যান', en: 'Scan' },
+  syncExport: { bn: 'এক্সপোর্ট', en: 'Export' },
+
+  // QR scanner
+  scanTitle: { bn: 'QR স্ক্যান', en: 'Scan QR' },
+  scanCancel: { bn: 'বাতিল', en: 'Cancel' },
+  scanHint: { bn: 'কোডটি ফ্রেমের ভেতরে রাখুন', en: 'Hold the code inside the frame' },
+  scanInsecure: {
+    bn: 'ক্যামেরা কেবল HTTPS বা localhost-এ চলে। স্থানীয় নোডের http ঠিকানা থেকে অ্যাপটি খুলুন, অথবা ঠিকানা টাইপ করুন।',
+    en: 'Camera needs HTTPS or localhost. Open the app from the node’s http address, or type the address instead.',
+  },
+  scanDenied: {
+    bn: 'ক্যামেরার অনুমতি দেওয়া হয়নি। ব্রাউজার সেটিংসে ক্যামেরা চালু করুন, অথবা ঠিকানা টাইপ করুন।',
+    en: 'Camera permission was denied. Enable the camera in browser settings, or type the address instead.',
+  },
+  scanNoCamera: { bn: 'কোনো ক্যামেরা পাওয়া যায়নি।', en: 'No camera found.' },
+  scanUnknown: { bn: 'ক্যামেরা চালু করা যায়নি।', en: "Couldn't start the camera." },
 
   // Board
   boardTitle: { bn: 'বোর্ড', en: 'Board' },

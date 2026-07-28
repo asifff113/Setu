@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import { useAppStore } from './store/appStore';
 import { useEventsStore } from './store/eventsStore';
+import { useSyncStore } from './store/syncStore';
 import './index.css';
 
 // Generate/persist the device keypair, load settings, and load the local
@@ -10,6 +11,10 @@ import './index.css';
 // stores once their `ready` flags flip true.
 void useAppStore.getState().hydrate();
 void useEventsStore.getState().hydrate();
+
+// Start relay sync (reconnecting; safe when there's no relay to reach — that
+// simply reads as 🔴 offline, which is a normal state for Setu).
+useSyncStore.getState().init();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

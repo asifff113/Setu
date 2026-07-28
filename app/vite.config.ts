@@ -5,6 +5,13 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    // Dev convenience: proxy the sync socket to a locally-running relay so
+    // `npm run dev` (5173) + `npm run dev:relay` (8787) sync end-to-end.
+    proxy: {
+      '/ws': { target: 'ws://localhost:8787', ws: true },
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),

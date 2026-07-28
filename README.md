@@ -50,6 +50,49 @@ npm run node:local
 Then open `http://<this-laptop's-LAN-IP>:8787` on a phone connected to the
 same Wi-Fi/hotspot. Set `PORT` to change the port.
 
+## Sync (relay + local node)
+
+Setu's events are immutable and signed, so syncing is just union-by-id: every
+transport funnels through one verified ingest path, and any event that fails
+its signature is dropped. The relay is a store-and-forward cache, **not** a
+server of record.
+
+**How a phone picks a relay:**
+
+- **Auto** — it connects to a `/ws` socket at whatever origin it was served
+  from. A public host → the cloud relay (🟢 in the status pill); a LAN/localhost
+  host (i.e. the app was served by a laptop node) → 🟡 local node.
+- **Manual** — `Sync → Connect to local node`, then type `192.168.x.x:8787` or
+  scan the QR at `http://<laptop-ip>:8787/node-qr`. Persisted across restarts;
+  "Disconnect" returns to auto.
+
+Reconciliation is server-driven: the phone opens with the ids it holds, the
+relay sends back what the phone is missing and asks for what the relay is
+missing, then both push new events live. Reconnect is automatic with backoff,
+and the app re-syncs whenever it returns to the foreground or regains network
+(Background Sync is Chromium-only, so we never depend on it).
+
+> **Browser limitation to know for the demo:** browsers block `ws://` from an
+> `https://` page (mixed content). So the manual local-node flow works when the
+> app is loaded over **http** — which is exactly the offline-hotspot path:
+> phones open `http://<laptop-ip>:8787` (served by the relay) and auto-connect.
+> A phone running the cached *https* PWA can't dial a plaintext LAN node; point
+> it at the laptop's http URL instead.
+
+**Two-phone / three-device offline test (Phase 4 acceptance):**
+
+1. On the laptop: `npm run node:local`. Note the LAN IP it prints, or open
+   `http://localhost:8787/node-qr` to see it as a QR.
+2. Turn the laptop's **internet off** but keep the Wi-Fi hotspot up (or use any
+   router with no uplink). Connect the phones to it.
+3. On each phone open `http://<laptop-ip>:8787`. The Sync tab should show
+   🟡 **Local node connected**.
+4. Check in as SAFE on one phone → it appears on the others' Board within a
+   second, with no internet anywhere.
+
+For pure UI dev, `npm run dev` proxies `/ws` to a relay on `:8787`, so
+`npm run dev` + `npm run dev:relay` sync end-to-end at `http://localhost:5173`.
+
 ## Building for production
 
 ```bash
@@ -114,9 +157,9 @@ Open the live URL on your Android phone, and confirm:
 | --- | --- | --- | --- |
 | `PORT` | relay | `8787` | Also respected by Fly/Render's own port injection. |
 | `STATIC_DIR` | relay | `<repo>/app/dist` | Override only if you're not using the standard repo layout. |
-| `DATA_DIR` | relay | — | Reserved for SQLite persistence (relay sync phase); not yet read. |
+| `DATA_DIR` | relay | — | SQLite event cache + persisted relay key live here. If unset, both are in-memory (fine for a laptop node; set it on the cloud relay for durability). |
 | `GATEWAY_URL` / `GATEWAY_KEY` | relay | — | Reserved for the SMS bridge phase; not yet read. |
-| `RELAY_SECRET_KEY` | relay | — | Reserved for signing relay-originated (SMS) events; not yet read. |
+| `RELAY_SECRET_KEY` | relay | — | 32-byte hex seed for the relay's own key (used to sign SMS events from Phase 6). If unset, it's generated and persisted to `DATA_DIR/relay-key.hex`, or ephemeral when there's no `DATA_DIR`. |
 
 ## License
 
