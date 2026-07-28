@@ -130,12 +130,16 @@ export class RelayWS {
     else if (data instanceof Blob) text = await data.text();
     else return;
 
-    let msg: SyncMessage;
+    let parsed: unknown;
     try {
-      msg = JSON.parse(text) as SyncMessage;
+      parsed = JSON.parse(text);
     } catch {
       return;
     }
+    // Guard against non-object JSON (null/number/array): reading `.type` off it
+    // would throw and reject this handler's promise. Cheap to ignore instead.
+    if (!parsed || typeof parsed !== 'object') return;
+    const msg = parsed as SyncMessage;
 
     if (msg.type === 'events' && Array.isArray(msg.events)) {
       await this.hooks.onEvents(msg.events);

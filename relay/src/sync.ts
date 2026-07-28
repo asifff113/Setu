@@ -71,12 +71,19 @@ export function attachSync(server: Server, store: EventStore): SyncHub {
   });
 
   function onMessage(peer: Peer, data: RawData): void {
-    let msg: SyncMessage;
+    let parsed: unknown;
     try {
-      msg = JSON.parse(data.toString()) as SyncMessage;
+      parsed = JSON.parse(data.toString());
     } catch {
       return;
     }
+    // JSON.parse happily yields null/true/42/"x"/[] for non-object input; any
+    // of those would make `msg.type` throw *outside* the try above and take the
+    // whole relay process down (uncaught exception on the ws 'message' event).
+    // A crisis relay must survive a malformed or hostile frame, so drop anything
+    // that isn't a plain object here.
+    if (!parsed || typeof parsed !== 'object') return;
+    const msg = parsed as SyncMessage;
     const now = nowSeconds();
 
     if (msg.type === 'have' && Array.isArray(msg.ids)) {
