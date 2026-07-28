@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { tryDemo } from './lib/demoTrigger';
 import { BoardScreen } from './screens/BoardScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { InfoScreen } from './screens/InfoScreen';
@@ -12,6 +14,18 @@ import { useAppStore } from './store/appStore';
 export default function App() {
   const ready = useAppStore((s) => s.ready);
   const onboarded = useAppStore((s) => s.settings?.onboarded ?? false);
+
+  // `?demo=1` (used for screenshots/video and shared links) loads the demo
+  // seed the same way the onboarding "Try the demo" button does. Strip the
+  // param afterward so reloading doesn't repeat the navigation.
+  useEffect(() => {
+    if (!ready) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('demo') !== '1') return;
+    url.searchParams.delete('demo');
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+    void tryDemo();
+  }, [ready]);
 
   if (!ready) {
     return (

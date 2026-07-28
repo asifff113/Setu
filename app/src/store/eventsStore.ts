@@ -1,6 +1,7 @@
 import { createEvent, type NewEventInput, type SetuEvent } from '@setu/shared';
 import { create } from 'zustand';
 import { ingestEvents, liveEvents, pruneEvents } from '../db/events';
+import { buildDemoEvents, hasDemoSeed } from '../lib/demoSeed';
 import { useAppStore } from './appStore';
 import { useSyncStore } from './syncStore';
 
@@ -16,6 +17,11 @@ interface EventsState {
   refresh: () => Promise<void>;
   /** Sign a new event with this device's identity, ingest it, and refresh. */
   publish: (input: NewEventInput) => Promise<SetuEvent>;
+  /**
+   * Load the `?demo=1` / "Try the demo" seed events. Stored locally only —
+   * never pushed to a relay — and a no-op if the seed is already present.
+   */
+  seedDemo: () => Promise<void>;
 }
 
 // Shared across subscribers so concurrent hydrate() calls resolve to one load.
@@ -55,5 +61,11 @@ export const useEventsStore = create<EventsState>((set, get) => ({
     // offline it stays local and syncs opportunistically on next connect.
     useSyncStore.getState().push([event]);
     return event;
+  },
+
+  seedDemo: async () => {
+    if (hasDemoSeed(get().events)) return;
+    await ingestEvents(buildDemoEvents());
+    await get().refresh();
   },
 }));

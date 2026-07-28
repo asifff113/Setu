@@ -36,6 +36,11 @@ export const dict = {
   onboardLanguageLabel: { bn: 'ভাষা', en: 'Language' },
   onboardGetStarted: { bn: 'শুরু করুন', en: 'Get started' },
   onboardSkip: { bn: 'এড়িয়ে যান', en: 'Skip for now' },
+  tryDemo: { bn: 'দেখে নিন — ডেমো চালু করুন', en: 'Try the demo' },
+  tryDemoHint: {
+    bn: '১৬টি নমুনা ইভেন্ট দিয়ে অ্যাপটি ঘুরে দেখুন — কোনো সেটআপ ছাড়াই',
+    en: 'Explore the app with 16 sample events — no setup needed',
+  },
 
   // Home
   statusCardTitle: { bn: 'আমার সর্বশেষ অবস্থা', en: 'My latest status' },
@@ -306,6 +311,85 @@ export const dict = {
   publishSuccess: { bn: '✅ বুলেটিন প্রকাশিত হয়েছে', en: '✅ Bulletin published' },
   publishViewBoard: { bn: 'বোর্ডে দেখুন', en: 'View on Board' },
   publishAnother: { bn: 'আরেকটি লিখুন', en: 'Write another' },
+
+  // Info
+  infoWhatTitle: { bn: 'সেতু কী?', en: 'What is Setu?' },
+  infoWhatBody: {
+    bn: 'সেতু একটি অফলাইন-প্রথম অ্যাপ — বিপর্যয় বা ইন্টারনেট বন্ধের সময় নিরাপদ/সাহায্য দরকার হিসেবে চেক-ইন করুন, আপনার ডিভাইস যাদের চেনে তাদের একটি বোর্ড দেখুন, আর ডিজিটালি স্বাক্ষরিত বুলেটিন ও অযাচাইকৃত গুজবের মধ্যে পার্থক্য বুঝুন। কোনো অ্যাকাউন্ট নেই, কোনো কেন্দ্রীয় সার্ভার নেই — প্রতিটি ইভেন্ট আপনার ডিভাইসে তৈরি, স্বাক্ষরিত ও সংরক্ষিত থাকে, এবং যেকোনো মাধ্যমে অন্য ডিভাইসের সাথে মিলিত (sync) হয়।',
+    en: "Setu is offline-first: check in as safe or needing help during a disaster or internet shutdown, see a board of everyone your device knows about, and tell cryptographically signed bulletins apart from unverified rumors. No accounts, no central server — every event is created, signed, and stored on your own device, and merges with any other device over whatever transport is available.",
+  },
+
+  infoLadderTitle: { bn: 'যেভাবে সিঙ্ক হয় — সবচেয়ে ভালো থেকে শেষ উপায় পর্যন্ত', en: 'How it syncs — best case down to the last resort' },
+  infoLadder1Title: { bn: '🌐 ইন্টারনেট', en: '🌐 Internet' },
+  infoLadder1Desc: {
+    bn: 'ক্লাউড রিলের সাথে সরাসরি লাইভ সিঙ্ক।',
+    en: 'Live sync straight to the cloud relay.',
+  },
+  infoLadder2Title: { bn: '📶 স্থানীয় ওয়াই-ফাই', en: '📶 Local Wi-Fi' },
+  infoLadder2Desc: {
+    bn: 'ইন্টারনেট না থাকলেও একই ওয়াই-ফাই/হটস্পটে থাকা ল্যাপটপ রিলে নোড দিয়ে সিঙ্ক হয়।',
+    en: 'No internet? A laptop running the same relay on your Wi-Fi/hotspot syncs everyone on it.',
+  },
+  infoLadder3Title: { bn: '🔦 QR বিম', en: '🔦 QR Beam' },
+  infoLadder3Desc: {
+    bn: 'কোনো নেটওয়ার্কই নেই? দুই ফোনের স্ক্রিন ও ক্যামেরা দিয়ে সরাসরি ইভেন্ট আদান-প্রদান।',
+    en: 'No network at all? Two phones exchange events directly, screen to camera.',
+  },
+  infoLadder4Title: { bn: '🔊 চির্প (শব্দ)', en: '🔊 Chirp (sound)' },
+  infoLadder4Desc: {
+    bn: 'ক্যামেরা কাজ না করলে, শব্দের মাধ্যমে একটি সর্বশেষ চেক-ইন পাঠানো যায়।',
+    en: "Camera not working? Send one latest check-in as an audible tone instead.",
+  },
+  infoLadder5Title: { bn: '📟 এসএমএস', en: '📟 SMS' },
+  infoLadder5Desc: {
+    bn: 'স্মার্টফোন নেই? যেকোনো বাটন ফোন থেকে এসএমএস দিয়ে চেক-ইন করা যায় — নিচে দেখুন।',
+    en: 'No smartphone at all? Any button phone can check in by text — see below.',
+  },
+
+  infoSmsTitle: { bn: 'বাটন ফোনের জন্য: এসএমএস', en: 'For button phones: SMS' },
+  infoSmsBody: {
+    bn: 'ইন্টারনেট নেই, স্মার্টফোনও নেই? একটি সাধারণ এসএমএস দিয়েও সেতুতে অংশ নেওয়া যায় — একটি গেটওয়ে ফোন সেই বার্তা পড়ে সিস্টেমে যোগ করে। ডিপ্লয়মেন্টের সময় স্থানীয় সমন্বয়কারী কোন নম্বরে পাঠাতে হবে তা জানিয়ে দেবেন। বার্তার ধরন:',
+    en: "No internet, no smartphone? A plain SMS still gets you into Setu — a gateway phone reads the text and adds it to the system. Whoever runs your local deployment announces which number to text. Message formats:",
+  },
+  infoSmsSafe: { bn: 'নিরাপদ জানাতে', en: "To report you're safe" },
+  infoSmsHelp: { bn: 'সাহায্য চাইতে', en: 'To ask for help' },
+  infoSmsMissing: { bn: 'নিখোঁজ রিপোর্ট করতে', en: 'To report someone missing' },
+  infoSmsFound: { bn: 'পাওয়া গেছে জানাতে', en: 'To report someone found' },
+  infoSmsFind: { bn: 'কারো খবর জানতে', en: "To ask for someone's status" },
+  infoSmsTry: {
+    bn: 'ফোন ছাড়াই ব্রাউজারে পরীক্ষা করতে চান? রিলের /sms-sim পাতা দেখুন।',
+    en: 'Want to try it without a phone? See the relay’s /sms-sim page.',
+  },
+
+  infoTrustTitle: { bn: 'ব্যাজ কী বোঝায়', en: 'What the badges mean' },
+  infoTrustVerified: {
+    bn: 'যাচাইকৃত প্রকাশকের ডিজিটাল স্বাক্ষর — সবচেয়ে বেশি বিশ্বাসযোগ্য।',
+    en: "A pinned, trusted publisher's digital signature — the highest trust level.",
+  },
+  infoTrustUnverified: {
+    bn: 'স্বাক্ষর সঠিক, কিন্তু প্রকাশক পিন করা নয় — সতর্কতার সাথে বিশ্বাস করুন।',
+    en: 'Signed correctly, but not from a pinned publisher — trust with caution.',
+  },
+  infoTrustSms: {
+    bn: 'এসএমএস গেটওয়ে থেকে এসেছে, ডিভাইস দ্বারা স্বাক্ষরিত নয়।',
+    en: 'Came in through the SMS gateway, not signed by a device.',
+  },
+  infoTrustSigned: {
+    bn: 'ডিভাইস দ্বারা স্বাক্ষরিত — জাল স্বাক্ষরযুক্ত ইভেন্ট গ্রহণই করা হয় না।',
+    en: "Signed by a device — anything with a forged signature is never accepted in the first place.",
+  },
+
+  infoSourceTitle: { bn: 'ওপেন সোর্স', en: 'Open source' },
+  infoSourceBody: {
+    bn: 'সেতুর পুরো কোড MIT লাইসেন্সে প্রকাশিত। কোড দেখুন, চালান বা নিজের এলাকায় নিজের রিলে চালান।',
+    en: "Setu's full source is published under the MIT license. Read the code, run it yourself, or stand up your own relay for your area.",
+  },
+  infoSourceLink: { bn: 'GitHub-এ দেখুন', en: 'View on GitHub' },
+  infoLicense: { bn: 'লাইসেন্সঃ MIT', en: 'License: MIT' },
+  infoBuiltFor: {
+    bn: 'জুলাই হ্যাকাথন ২০২৬-এ তৈরি, ২০২৪ সালের ইন্টারনেট বন্ধের অভিজ্ঞতাকে স্মরণ করে।',
+    en: 'Built during the July Hackathon 2026, in honor of the 2024 internet-shutdown experience.',
+  },
 
   // Time
   justNow: { bn: 'এইমাত্র', en: 'just now' },

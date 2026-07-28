@@ -2,6 +2,7 @@ import { findAreaByCode } from '@setu/shared';
 import { useState } from 'react';
 import { AreaPicker } from '../components/AreaPicker';
 import { useI18n, type Lang } from '../i18n';
+import { tryDemo } from '../lib/demoTrigger';
 import { useAppStore } from '../store/appStore';
 
 /** First-run: name + area + language. One screen, skippable. */
@@ -14,6 +15,7 @@ export function OnboardingScreen() {
   const [name, setName] = useState(settings?.name ?? '');
   const [areaCode, setAreaCode] = useState<string | null>(settings?.areaCode ?? null);
   const [submitting, setSubmitting] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   async function finish() {
     if (submitting) return;
@@ -27,12 +29,30 @@ export function OnboardingScreen() {
     });
   }
 
+  async function startDemo() {
+    if (demoLoading) return;
+    setDemoLoading(true);
+    await tryDemo();
+  }
+
   return (
     <div className="flex min-h-full flex-col justify-between px-6 pb-8 pt-14">
       <div className="flex flex-col gap-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-white">{t('onboardTitle')}</h1>
           <p className="mt-2 text-sm text-white/60">{t('onboardSubtitle')}</p>
+        </div>
+
+        <div className="flex flex-col items-center gap-2">
+          <button
+            type="button"
+            disabled={demoLoading}
+            onClick={() => void startDemo()}
+            className="w-full rounded-2xl border-2 border-accent px-4 py-3 text-base font-semibold text-accent active:opacity-80 disabled:opacity-50"
+          >
+            {demoLoading ? '…' : t('tryDemo')}
+          </button>
+          <p className="text-xs text-white/40">{t('tryDemoHint')}</p>
         </div>
 
         <div>

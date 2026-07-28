@@ -184,6 +184,36 @@ Open the live URL on your Android phone, and confirm:
   mode — it must still load (same check as the local verification above,
   now against the deployed service worker).
 
+## SMS bridge + the no-JS `/lite` board (Phase 7)
+
+Button-phone users are first-class citizens, not just broadcast targets. A
+gateway phone (or the [android-sms-gateway](https://github.com/capcom6/android-sms-gateway)
+app / [httpSMS](https://httpsms.com/)) forwards inbound texts to the relay's
+`POST /api/sms/inbound`, which auto-detects either JSON shape, parses the
+grammar below (case-insensitive, Bangla digits tolerated), and turns it into
+a normal `src:'sms'` SetuEvent — attested with the relay's own signature
+(since a phone number has no Ed25519 key of its own) and synced to every
+peer exactly like an app-authored event. See `Info` in the app for the
+grammar reference shown to users.
+
+- `SAFE <name> [area]` → checkin/safe
+- `HELP <MED|RESCUE|FOOD|WATER|SHELTER> <name> [area] [- message]` → help/need
+- `MISSING <name> [area]` / `FOUND <name> [area]` → person event
+- `FIND <name>` → the relay texts back that person's latest known status —
+  the two-way exchange, not just one-way broadcast
+- anything else → a usage-help reply
+
+Outbound replies (`FIND` answers, usage help) go out through `GATEWAY_URL` +
+`GATEWAY_KEY` (below); if unset, replies are logged only, not sent — useful
+for local dev.
+
+No real gateway handy? `GET /sms-sim` is a fake-phone page that POSTs to the
+same webhook, for demoing the whole flow from a browser.
+
+`GET /lite` is a server-rendered, zero-JavaScript, <20 KB plain-HTML
+read-only board (grouped by area, `<meta http-equiv="refresh" content="60">`)
+for feature phones and 2G-era browsers that can't run the PWA at all.
+
 ## Environment variables
 
 | Var | Used by | Default | Notes |
@@ -191,9 +221,21 @@ Open the live URL on your Android phone, and confirm:
 | `PORT` | relay | `8787` | Also respected by Fly/Render's own port injection. |
 | `STATIC_DIR` | relay | `<repo>/app/dist` | Override only if you're not using the standard repo layout. |
 | `DATA_DIR` | relay | — | SQLite event cache + persisted relay key live here. If unset, both are in-memory (fine for a laptop node; set it on the cloud relay for durability). |
-| `GATEWAY_URL` / `GATEWAY_KEY` | relay | — | Reserved for the SMS bridge phase; not yet read. |
-| `RELAY_SECRET_KEY` | relay | — | 32-byte hex seed for the relay's own key (used to sign SMS events from Phase 6). If unset, it's generated and persisted to `DATA_DIR/relay-key.hex`, or ephemeral when there's no `DATA_DIR`. |
+| `GATEWAY_URL` | relay | — | Outbound SMS-send endpoint (an android-sms-gateway or httpSMS URL). Unset → outbound replies (`FIND` answers, usage help) are logged only, not sent. |
+| `GATEWAY_KEY` | relay | — | Auth key/token for `GATEWAY_URL`. |
+| `GATEWAY_KIND` | relay | inferred from `GATEWAY_URL` | `android` or `httpsms` — override only if URL-sniffing guesses wrong. |
+| `GATEWAY_FROM` | relay | — | Sender number; required by httpSMS' send API, ignored by android-sms-gateway. |
+| `RELAY_SECRET_KEY` | relay | — | 32-byte hex seed for the relay's own key (used to sign `src:'sms'` events). If unset, it's generated and persisted to `DATA_DIR/relay-key.hex`, or ephemeral when there's no `DATA_DIR`. |
+
+## Demo / seed mode
+
+Any URL with `?demo=1` (or the "Try the demo" button on first run) loads ~16
+realistic sample events — mixed check-ins, help requests, a missing + a found
+person, one ✓ verified bulletin, one ⚠ unverified rumor, and one 📟 SMS-sourced
+check-in — entirely client-side, never pushed to a relay. It's what a
+first-time, often anonymous, Facebook-referred visitor sees instead of an
+empty board, and it's what `?demo=1` links in screenshots/video point at.
 
 ## License
 
-MIT.
+MIT — see [`LICENSE`](./LICENSE).

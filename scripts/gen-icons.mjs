@@ -19,11 +19,27 @@ async function png(size, outPath) {
   console.log('wrote', outPath);
 }
 
+// Maskable icons get cropped to whatever shape the OS picks (circle, squircle,
+// rounded square...); only the centered ~80%-diameter "safe zone" is
+// guaranteed visible. The source art's glyph strokes reach right to the edge
+// of that zone, so render it shrunk onto a same-color canvas instead of
+// reusing the flat icon, which would clip on some Android launchers.
+async function pngMaskable(size, outPath) {
+  const safeZoneScale = 0.65;
+  const inner = Math.round(size * safeZoneScale);
+  const glyph = await sharp(svg, { density: 384 }).resize(inner, inner).png().toBuffer();
+  await sharp({
+    create: { width: size, height: size, channels: 4, background: '#e5322d' },
+  })
+    .composite([{ input: glyph, left: Math.round((size - inner) / 2), top: Math.round((size - inner) / 2) }])
+    .png()
+    .toFile(outPath);
+  console.log('wrote', outPath);
+}
+
 await png(192, join(outDir, 'icon-192.png'));
 await png(512, join(outDir, 'icon-512.png'));
-// Maskable: same art already fills the full square with solid bg and keeps
-// glyph strokes within the ~80% safe zone, so it's reusable as-is.
-await png(512, join(outDir, 'icon-maskable-512.png'));
+await pngMaskable(512, join(outDir, 'icon-maskable-512.png'));
 // Apple touch icon: iOS ignores alpha, our bg is already opaque.
 await png(180, join(publicDir, 'apple-touch-icon.png'));
 
