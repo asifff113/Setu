@@ -27,7 +27,16 @@ interface Peer {
   rooms: Set<string>;
 }
 
-export function attachSync(server: Server, store: EventStore): void {
+/** Handle returned by {@link attachSync} for pushing events in from outside /ws. */
+export interface SyncHub {
+  /**
+   * Ingest externally-produced events (e.g. the SMS webhook) and push the
+   * newly-stored ones to every connected peer. Returns the events that were new.
+   */
+  publish(events: SetuEvent[]): SetuEvent[];
+}
+
+export function attachSync(server: Server, store: EventStore): SyncHub {
   const wss = new WebSocketServer({ noServer: true });
   const peers = new Set<Peer>();
 
@@ -83,14 +92,26 @@ export function attachSync(server: Server, store: EventStore): void {
     }
   }
 
-  /** Push newly-stored events to every other connected peer (global room). */
-  function broadcast(events: SetuEvent[], from: Peer): void {
+  /**
+   * Push newly-stored events to connected peers. `from` (the peer that supplied
+   * them over /ws) is skipped; pass null for events injected from outside the
+   * socket layer, e.g. the SMS webhook, which should reach everyone.
+   */
+  function broadcast(events: SetuEvent[], from: Peer | null): void {
     const payload = JSON.stringify({ type: 'events', events } satisfies SyncMessage);
     for (const peer of peers) {
       if (peer === from) continue;
       if (peer.ws.readyState === WebSocket.OPEN) peer.ws.send(payload);
     }
   }
+
+  return {
+    publish(events: SetuEvent[]): SetuEvent[] {
+      const added = store.ingest(events, nowSeconds());
+      if (added.length) broadcast(added, null);
+      return added;
+    },
+  };
 
   function sendEvents(ws: WebSocket, events: SetuEvent[]): void {
     send(ws, { type: 'events', events });
