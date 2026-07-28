@@ -13,6 +13,8 @@ import { useEventsStore } from '../store/eventsStore';
 import { useSyncStore, type SyncStatus } from '../store/syncStore';
 import { BeamReceiver } from '../sync/beam/BeamReceiver';
 import { BeamSender } from '../sync/beam/BeamSender';
+import { ChirpReceiver } from '../sync/chirp/ChirpReceiver';
+import { ChirpSender } from '../sync/chirp/ChirpSender';
 import { QrScanner } from '../sync/QrScanner';
 
 const STATUS_META: Record<SyncStatus, { icon: string; key: DictKey; tint: string }> = {
@@ -42,11 +44,13 @@ export function SyncScreen() {
   const events = useEventsStore((s) => s.events);
   const refreshEvents = useEventsStore((s) => s.refresh);
   const myGh = useAppStore((s) => s.settings?.gh ?? '');
+  const author = useAppStore((s) => s.identity?.author);
 
   const [nodeInput, setNodeInput] = useState('');
   const [nodeError, setNodeError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [beamMode, setBeamMode] = useState<'send' | 'scan' | null>(null);
+  const [chirpMode, setChirpMode] = useState<'send' | 'listen' | null>(null);
   const [exportFilter, setExportFilter] = useState<BundleFilter>('all');
   const [fileMsg, setFileMsg] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
@@ -158,6 +162,36 @@ export function SyncScreen() {
               📷
             </span>
             {t('syncBeamScan')}
+          </button>
+        </div>
+      </section>
+
+      {/* Chirp — data over sound, the last-resort transport */}
+      <section className="rounded-2xl bg-surface p-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-white/40">
+          {t('syncChirpTitle')}
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-white/40">{t('syncChirpHint')}</p>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setChirpMode('send')}
+            className="flex flex-col items-center gap-1 rounded-xl bg-accent py-4 text-sm font-semibold text-white active:opacity-90"
+          >
+            <span className="text-2xl" aria-hidden="true">
+              📢
+            </span>
+            {t('syncChirpSend')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setChirpMode('listen')}
+            className="flex flex-col items-center gap-1 rounded-xl bg-surface-2 py-4 text-sm font-semibold text-white active:opacity-80"
+          >
+            <span className="text-2xl" aria-hidden="true">
+              🎧
+            </span>
+            {t('syncChirpListen')}
           </button>
         </div>
       </section>
@@ -316,6 +350,11 @@ export function SyncScreen() {
         <BeamSender events={events} onClose={() => setBeamMode(null)} />
       )}
       {beamMode === 'scan' && <BeamReceiver onClose={() => setBeamMode(null)} />}
+
+      {chirpMode === 'send' && (
+        <ChirpSender events={events} author={author} onClose={() => setChirpMode(null)} />
+      )}
+      {chirpMode === 'listen' && <ChirpReceiver onClose={() => setChirpMode(null)} />}
 
       {scanning && (
         <QrScanner

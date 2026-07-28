@@ -8,4 +8,5 @@ export * from './publishers.js';
 export * from './views.js';
 export * from './wire.js';
 export * from './fountain.js';
+export * from './chirp.js';
 export * from './sms.js';

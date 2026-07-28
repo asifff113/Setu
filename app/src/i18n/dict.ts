@@ -169,6 +169,62 @@ export const dict = {
     en: "Couldn't decode the beam. Please try again.",
   },
 
+  // Sync — Chirp (sound) card
+  syncChirpTitle: { bn: '🔊 চির্প (শব্দ)', en: '🔊 Chirp (sound)' },
+  syncChirpHint: {
+    bn: 'ইন্টারনেট বা ক্যামেরা ছাড়াই — শব্দের মাধ্যমে আপনার সর্বশেষ অবস্থা পাঠান।',
+    en: 'No internet or camera — send your latest status over sound.',
+  },
+  syncChirpSend: { bn: 'বাজান', en: 'Play' },
+  syncChirpListen: { bn: 'শুনুন', en: 'Listen' },
+
+  // Chirp — send
+  chirpSendTitle: { bn: 'শব্দে পাঠান', en: 'Send by sound' },
+  chirpEmpty: {
+    bn: 'পাঠানোর মতো কোনো চেক-ইন নেই। প্রথমে চেক-ইন করুন।',
+    en: 'No check-in to send yet. Check in first.',
+  },
+  chirpTooBig: {
+    bn: 'এই আপডেটটি শব্দে পাঠানোর জন্য বড়। QR বিম ব্যবহার করুন।',
+    en: 'This update is too large to send by sound — use QR Beam instead.',
+  },
+  chirpUnsupported: { bn: 'এই ডিভাইসে শব্দ চালানো যাচ্ছে না।', en: "This device can't play the sound." },
+  chirpStart: { bn: '📢 শব্দ বাজান', en: '📢 Play sound' },
+  chirpPlaying: {
+    bn: 'শব্দ বাজছে — অন্য ফোনকে কাছে ধরে রাখুন',
+    en: 'Playing — hold the other phone close',
+  },
+  chirpAim: {
+    bn: 'ফোন দুটি কাছাকাছি রাখুন, চারপাশ শান্ত রাখুন',
+    en: 'Keep the phones close and the surroundings quiet',
+  },
+  chirpLoopHint: {
+    bn: 'অন্য ফোন একবার পরিষ্কারভাবে না পাওয়া পর্যন্ত বারবার বাজবে।',
+    en: 'It repeats until the other phone gets one clean read.',
+  },
+  chirpBytes: { bn: 'বাইট', en: 'bytes' },
+  chirpQuicker: { bn: '⚡ দ্রুত (কম নির্ভরযোগ্য)', en: '⚡ Quicker (less reliable)' },
+  chirpReliable: { bn: '🛡️ বেশি নির্ভরযোগ্য', en: '🛡️ More reliable' },
+
+  // Chirp — listen / receive
+  chirpListenTitle: { bn: 'শব্দ শুনুন', en: 'Listen for sound' },
+  chirpListenStart: { bn: '🎧 শোনা শুরু করুন', en: '🎧 Start listening' },
+  chirpListening: { bn: 'শব্দ শোনা হচ্ছে… স্থির রাখুন', en: 'Listening… hold steady' },
+  chirpListenHint: {
+    bn: 'অন্য ফোনের স্পিকারের কাছে ধরে রাখুন',
+    en: "Hold near the other phone's speaker",
+  },
+  chirpNoMic: { bn: 'কোনো মাইক্রোফোন পাওয়া যায়নি।', en: 'No microphone found.' },
+  chirpMicDenied: {
+    bn: 'মাইক্রোফোনের অনুমতি দেওয়া হয়নি। ব্রাউজার সেটিংসে মাইক চালু করুন।',
+    en: 'Microphone permission was denied. Enable the mic in browser settings.',
+  },
+  chirpInsecure: {
+    bn: 'মাইক্রোফোন কেবল HTTPS বা localhost-এ চলে।',
+    en: 'The microphone needs HTTPS or localhost.',
+  },
+  chirpAudioFailed: { bn: 'শব্দ চালু করা যায়নি।', en: "Couldn't start audio." },
+
   // QR scanner
   scanTitle: { bn: 'QR স্ক্যান', en: 'Scan QR' },
   scanCancel: { bn: 'বাতিল', en: 'Cancel' },

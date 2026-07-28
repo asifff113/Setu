@@ -4,8 +4,9 @@ Offline-first crisis-communication PWA. People check in as **SAFE** or **NEEDS
 HELP**, see a board of everyone their device knows about, and read
 cryptographically signed bulletins — all backed by an immutable local event
 log that syncs over whatever transport exists (cloud relay, a laptop on a
-local Wi-Fi hotspot, QR codes between two phones, or SMS via a gateway
-phone). No accounts, no server of record.
+local Wi-Fi hotspot, QR codes between two phones, audio chirps between a
+speaker and a mic, or SMS via a gateway phone). No accounts, no server of
+record.
 
 Monorepo (npm workspaces):
 
@@ -92,6 +93,38 @@ and the app re-syncs whenever it returns to the foreground or regains network
 
 For pure UI dev, `npm run dev` proxies `/ws` to a relay on `:8787`, so
 `npm run dev` + `npm run dev:relay` sync end-to-end at `http://localhost:5173`.
+
+## Chirp — data over sound (Phase 8)
+
+The last rung on the transport ladder: when there's no network, no camera to
+scan a QR, and no SMS gateway, one device plays its latest check-in as an
+audible [ggwave](https://github.com/ggerganov/ggwave) FSK tone and another
+device decodes it through the mic. `Sync → 🔊 Chirp`.
+
+- **Send** packs *one* event (your latest check-in) into a compact ~110–140
+  byte binary frame — the 32-byte author key + 64-byte signature are
+  unavoidable, so unlike QR Beam this carries a single event, not a bundle. It
+  loops the sound until you stop. A full Bangla name + area still fits; if an
+  event is too large it says so and points you at QR Beam.
+- **Listen** decodes the mic stream and funnels the recovered event through the
+  same verified `ingestEvents` gate as every other transport, so a forged or
+  garbled chirp is dropped on its signature. The event id is *recomputed* on
+  receive (never transmitted), so a tampered frame simply fails to verify.
+- ggwave is a self-contained WASM module with its binary embedded as a data-URI
+  — **no runtime fetch, works fully offline** — lazy-loaded on first use and
+  precached by Workbox.
+
+**Two-phone demo:** open `Sync → 🔊 Chirp → 🎧 Listen` on phone A (grant the
+mic, tap *Start listening*), and `Sync → 🔊 Chirp → 📢 Play` on phone B. Hold
+them close, turn B's volume up, keep it quiet. B chirps for ~5–9 s per loop;
+A shows ✅ *1 new* when it decodes. *Quicker* vs *More reliable* trades transmit
+time for robustness.
+
+Like the camera, the mic needs a **secure context** (HTTPS or `localhost`). The
+PWA installed from the HTTPS deploy stays secure even in airplane mode, so this
+works **fully offline** — install on both phones first, then cut the network. A
+phone pointed at a plaintext `http://<laptop-ip>:8787` node can't open the mic,
+so demo Chirp from the installed HTTPS app, not the http hotspot URL.
 
 ## Building for production
 
