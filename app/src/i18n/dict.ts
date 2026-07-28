@@ -91,6 +91,7 @@ export const dict = {
   badgeVerified: { bn: 'যাচাইকৃত প্রকাশক', en: 'Verified publisher' },
   badgeUnverified: { bn: 'অযাচাইকৃত — সতর্কতার সাথে বিশ্বাস করুন', en: 'Unverified — trust with caution' },
   badgeSms: { bn: 'এসএমএস এর মাধ্যমে', en: 'Via SMS' },
+  badgeSigned: { bn: 'ডিভাইস দ্বারা স্বাক্ষরিত', en: 'Signed by device' },
 
   // Time
   justNow: { bn: 'এইমাত্র', en: 'just now' },
