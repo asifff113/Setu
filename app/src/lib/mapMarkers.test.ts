@@ -16,9 +16,9 @@ function ev(input: NewEventInput, keypair = kp): SetuEvent {
   return createEvent(input, keypair);
 }
 
-// A known-resolvable geohash. Several Dhaka-area seeds sit in the same
-// precision-4 cell (~39km x ~19.5km), so don't assume this resolves back to
-// "mirpur" specifically — always compare against findAreaByGh's own answer.
+// A known-resolvable geohash (areas.ts's precision-6 table has no collisions —
+// see areas.test.ts — but compare against findAreaByGh's own answer anyway
+// rather than hardcoding Mirpur's coordinates here).
 const MIRPUR_GH = findAreaByCode('mirpur')!.gh;
 
 describe('buildMapMarkers', () => {
@@ -35,8 +35,8 @@ describe('buildMapMarkers', () => {
     expect(marker).toBeDefined();
     expect(marker!.color).toBe('need');
     // Within a small jitter radius of whichever seed centroid this gh resolves to.
-    expect(Math.abs(marker!.lat - resolved.lat)).toBeLessThan(0.05);
-    expect(Math.abs(marker!.lng - resolved.lng)).toBeLessThan(0.05);
+    expect(Math.abs(marker!.lat - resolved.lat)).toBeLessThan(0.01);
+    expect(Math.abs(marker!.lng - resolved.lng)).toBeLessThan(0.01);
   });
 
   it('drops events with neither GPS nor a resolvable area', () => {

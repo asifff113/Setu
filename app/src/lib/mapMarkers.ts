@@ -22,8 +22,9 @@ export interface AreaCount {
 
 // Degrees of deterministic spread applied to area-centroid fallback points,
 // so several people from the same area (no GPS attached) don't render as one
-// fully overlapping dot. Small relative to a precision-4 geohash cell (~20km).
-const JITTER_DEGREES = 0.03;
+// fully overlapping dot. Kept small relative to a precision-6 geohash cell
+// (~1.2km x 0.6km) so a jittered point never drifts into a neighboring area.
+const JITTER_DEGREES = 0.003;
 
 /** Deterministic pseudo-random offset from an id, stable across re-renders. */
 function hashJitter(id: string): [number, number] {

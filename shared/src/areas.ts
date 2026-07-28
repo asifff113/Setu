@@ -9,7 +9,7 @@ export type Area = {
   bn: string;
   lat: number;
   lng: number;
-  /** precomputed geohash prefix, precision 4 */
+  /** precomputed geohash prefix, precision 6 */
   gh: string;
 };
 
@@ -18,7 +18,12 @@ type AreaSeed = Omit<Area, 'gh'>;
 // The 64 districts of Bangladesh, plus a handful of well-known Dhaka/Chattogram
 // thanas that show up constantly in disaster reporting (so "Mirpur" resolves to
 // something more specific than all of Dhaka). Coordinates are district/thana HQ
-// approximations -- good enough for a precision-4 geohash "area" bucket.
+// approximations -- fine for a precision-6 geohash "area" bucket. (Precision 4
+// looked like the natural choice for a ~20km "area" cell, but several of these
+// city thanas sit only a few km apart and collapsed onto the same precision-4/5
+// cell -- e.g. mirpur/uttara/gulshan/dhanmondi/mohammadpur/badda/khilgaon/
+// rampura/motijheel all shared one precision-4 cell. Precision 6 (~1.2km x
+// 0.6km) is the coarsest precision with zero collisions across this table.)
 const SEEDS: AreaSeed[] = [
   // Dhaka division
   { code: 'dhaka', name: 'Dhaka', bn: 'ঢাকা', lat: 23.7104, lng: 90.4074 },
@@ -119,7 +124,7 @@ const SEEDS: AreaSeed[] = [
   { code: 'agrabad', name: 'Agrabad', bn: 'আগ্রাবাদ', lat: 22.3260, lng: 91.8130 },
 ];
 
-export const AREAS: Area[] = SEEDS.map((s) => ({ ...s, gh: geohashEncode(s.lat, s.lng, 4) }));
+export const AREAS: Area[] = SEEDS.map((s) => ({ ...s, gh: geohashEncode(s.lat, s.lng, 6) }));
 
 const BY_CODE = new Map(AREAS.map((a) => [a.code, a]));
 

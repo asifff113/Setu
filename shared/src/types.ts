@@ -13,7 +13,7 @@ export type SetuEvent = {
   id: string; // base64url( sha256(canonical CBOR of body-without-sig)[0..16] )
   ts: number; // unix seconds, device clock
   ttl: number; // seconds; default 259200 (72h)
-  gh: string; // geohash prefix precision 4 (area), '' if unknown
+  gh: string; // geohash prefix precision 6 (area), '' if unknown
   au: string; // author pubkey, base64url (32 bytes)
   n?: string; // display name <= 32 chars
   st?: SetuStatus; // for checkin/help
