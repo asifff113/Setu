@@ -1,0 +1,37 @@
+@import 'tailwindcss';
+@import '@fontsource/noto-sans-bengali/400.css';
+@import '@fontsource/noto-sans-bengali/700.css';
+
+@theme {
+  --font-sans:
+    'Noto Sans Bengali', 'Noto Sans', system-ui, -apple-system, sans-serif;
+  --color-accent: #e5322d;
+  --color-bg: #121212;
+  --color-surface: #1c1c1e;
+  --color-surface-2: #262628;
+  --color-safe: #2fb344;
+  --color-need: #e5322d;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: #f5f5f5;
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+button {
+  font-family: inherit;
+}
