@@ -5,6 +5,7 @@ import { HomeScreen } from './screens/HomeScreen';
 import { InfoScreen } from './screens/InfoScreen';
 import { MapScreen } from './screens/MapScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
+import { PublishScreen } from './screens/PublishScreen';
 import { SyncScreen } from './screens/SyncScreen';
 import { useAppStore } from './store/appStore';
 
@@ -32,6 +33,8 @@ export default function App() {
           <Route path="sync" element={<SyncScreen />} />
           <Route path="info" element={<InfoScreen />} />
         </Route>
+        {/* Hidden: not in the tab bar, reached only by typing the URL. */}
+        <Route path="publish" element={<PublishScreen />} />
       </Routes>
     </BrowserRouter>
   );

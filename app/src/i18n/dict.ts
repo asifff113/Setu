@@ -220,6 +220,37 @@ export const dict = {
   },
   mapReportsSuffix: { bn: 'টি রিপোর্ট', en: 'reports' },
 
+  // /publish — hidden bulletin composer
+  publishTitle: { bn: 'বুলেটিন প্রকাশ করুন', en: 'Publish bulletin' },
+  publishHiddenNote: {
+    bn: 'এটি একটি লুকানো পরিচালনা স্ক্রিন — সাধারণ ব্যবহারকারীদের জন্য নয়।',
+    en: 'This is a hidden admin screen — not for regular users.',
+  },
+  publishBack: { bn: '← অ্যাপে ফিরুন', en: '← Back to app' },
+  publishSecretLabel: { bn: 'প্রকাশকের সিক্রেট কী', en: 'Publisher secret key' },
+  publishSecretPlaceholder: { bn: 'base64url সিক্রেট কী পেস্ট করুন', en: 'Paste your base64url secret key' },
+  publishSecretHint: {
+    bn: 'এই কী কখনো সংরক্ষণ করা হয় না — শুধু এই সেশনে মেমোরিতে ব্যবহৃত হয়।',
+    en: 'This key is never stored — used only in memory for this session.',
+  },
+  publishSecretInvalid: {
+    bn: 'সিক্রেট কী সঠিক নয় — এটি ৩২ বাইটের base64url স্ট্রিং হতে হবে।',
+    en: "That doesn't look like a valid secret key — it should be a 32-byte base64url string.",
+  },
+  publishDerivedPublic: { bn: 'প্রকাশকের পাবলিক কী', en: 'Publisher public key' },
+  publishPinnedYes: { bn: '✓ পিন করা প্রকাশক — যাচাইকৃত দেখাবে', en: '✓ Pinned publisher — will show verified' },
+  publishPinnedNo: { bn: '⚠ পিন করা নয় — অযাচাইকৃত দেখাবে', en: '⚠ Not pinned — will show as unverified' },
+  publishAreaLabel: { bn: 'এলাকা (ঐচ্ছিক)', en: 'Area (optional)' },
+  publishMessageLabel: { bn: 'বুলেটিনের বার্তা', en: 'Bulletin message' },
+  publishMessagePlaceholder: {
+    bn: 'যেমনঃ মিরপুরে আশ্রয়কেন্দ্র খোলা হয়েছে...',
+    en: 'e.g. Shelter opened in Mirpur...',
+  },
+  publishSubmit: { bn: 'প্রকাশ করুন', en: 'Publish' },
+  publishSuccess: { bn: '✅ বুলেটিন প্রকাশিত হয়েছে', en: '✅ Bulletin published' },
+  publishViewBoard: { bn: 'বোর্ডে দেখুন', en: 'View on Board' },
+  publishAnother: { bn: 'আরেকটি লিখুন', en: 'Write another' },
+
   // Time
   justNow: { bn: 'এইমাত্র', en: 'just now' },
 } as const satisfies Record<string, Entry>;

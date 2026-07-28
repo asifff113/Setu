@@ -13,8 +13,10 @@ import { verifyEvent } from './codec.js';
 import type { SetuEvent } from './types.js';
 
 export const PINNED_PUBLISHERS: readonly string[] = [
-  // TODO(demo): replace with your publisher public key, e.g.
-  // 'sTgUeZ0m0oQ1wX2yq3r4s5t6u7v8w9x0y1z2A3B4C5D6',
+  // Demo publisher, generated for this hackathon build. The matching secret
+  // lives in DEMO_PUBLISHER.local.md (gitignored) — paste it into /publish
+  // to sign bulletins that render with the ✓ verified badge.
+  'uxqNicQzfR99CtZR4A1kVcn9bTkQAnuoZMEry0E1AYs',
 ];
 
 /** True if `author` (base64url pubkey) is a pinned trusted publisher. */

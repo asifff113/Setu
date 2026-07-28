@@ -5,6 +5,7 @@ dev-dist/
 .env
 .env.*
 !.env.example
+*.local.md
 
 # relay runtime data
 relay/data/
