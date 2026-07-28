@@ -1,0 +1,16 @@
+**/node_modules
+**/dist
+**/dev-dist
+.git
+.github
+*.md
+*.tsbuildinfo
+relay/data
+*.sqlite
+*.sqlite-journal
+.env
+.env.*
+!.env.example
+.vscode
+.DS_Store
+Thumbs.db

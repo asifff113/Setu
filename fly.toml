@@ -1,0 +1,48 @@
+# Fly.io deploy config for the Setu relay (which also serves the built PWA).
+#
+# First-time setup:
+#   1. flyctl auth login
+#   2. Rename `app` below to something unique — Fly app names are global.
+#      (Or just run `fly launch --no-deploy` from repo root and let it
+#      rewrite this file / create the app for you, then `fly deploy`.)
+#   3. fly deploy
+#
+# No local Docker install is required — Fly builds the image on its own
+# remote builders from this Dockerfile.
+
+app = "setu-relay"
+primary_region = "sin" # Singapore — closest common Fly region to Bangladesh; run `fly platform regions` to pick another
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8787"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # Scales to zero when idle to avoid cost while developing. Set this to 1
+  # shortly before a live demo/judging so there's no cold-start delay.
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512MB"
+
+[[http_service.checks]]
+  interval = "15s"
+  timeout = "5s"
+  grace_period = "10s"
+  method = "GET"
+  path = "/healthz"
+
+# A persistent volume is only needed once the relay starts writing SQLite
+# data (later phase). To enable it:
+#   fly volumes create setu_data --region sin --size 1
+# then uncomment this (and add DATA_DIR = "/data" into the [env] block above):
+# [mounts]
+#   source = "setu_data"
+#   destination = "/data"

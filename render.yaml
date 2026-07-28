@@ -1,0 +1,20 @@
+# Render deploy config (alternative to fly.toml) for the Setu relay, which
+# also serves the built PWA. No local Docker install is required — Render
+# builds the image on its own infra from the root Dockerfile.
+#
+# Usage: push this repo to GitHub, then in the Render dashboard choose
+# "New +" -> "Blueprint" and point it at the repo. Render reads this file
+# automatically. (Or `render up` via the Render CLI.)
+
+services:
+  - type: web
+    name: setu-relay
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: PORT
+        value: 8787
+      - key: NODE_ENV
+        value: production
