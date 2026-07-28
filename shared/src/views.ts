@@ -32,6 +32,20 @@ export function missingPersonKey(event: SetuEvent): string {
   return `pn:${normalizeName(event.pn)}|${event.gh}`;
 }
 
+/**
+ * `ts` has whole-second resolution, so same-author events created within one
+ * second are common (a quick double-tap; two events replayed off a merge).
+ * The winner must be the same on every device regardless of the order
+ * events happen to iterate in locally, or peers holding an identical event
+ * set could converge on different "latest" views. Tie-break on `id` (a
+ * content hash, so already stable and identical everywhere) to make the
+ * choice a pure function of the event set, not of iteration order.
+ */
+function wins(candidate: SetuEvent, current: SetuEvent): boolean {
+  if (candidate.ts !== current.ts) return candidate.ts > current.ts;
+  return candidate.id > current.id;
+}
+
 function latestByKey(
   events: readonly SetuEvent[],
   keyOf: (event: SetuEvent) => string,
@@ -40,7 +54,7 @@ function latestByKey(
   for (const event of events) {
     const key = keyOf(event);
     const current = byKey.get(key);
-    if (!current || event.ts > current.ts) byKey.set(key, event);
+    if (!current || wins(event, current)) byKey.set(key, event);
   }
   return [...byKey.values()].sort((a, b) => b.ts - a.ts);
 }

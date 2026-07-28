@@ -24,7 +24,9 @@ export function TabBar() {
             }`
           }
         >
-          <span className="text-xl leading-none">{tab.icon}</span>
+          <span className="text-xl leading-none" aria-hidden="true">
+            {tab.icon}
+          </span>
           <span className="leading-none">{t(tab.key)}</span>
         </NavLink>
       ))}

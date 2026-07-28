@@ -38,6 +38,16 @@ describe('latestStatusEvents', () => {
     const bul = ev({ t: 'bulletin', ts: 1, gh: 'wh0r', msg: 'hi' });
     expect(latestStatusEvents([p, bul])).toHaveLength(0);
   });
+
+  it('picks the same winner regardless of array order when ts ties (convergence)', () => {
+    // Same whole-second ts is common (quick double-tap, replayed merge); every
+    // device must derive the identical "latest" from the identical event set.
+    const a = ev({ t: 'checkin', ts: 5, gh: 'wh0r', st: 'safe' });
+    const b = ev({ t: 'help', ts: 5, gh: 'wh0r', st: 'need', cat: 'water' });
+    const forward = latestStatusEvents([a, b])[0]?.id;
+    const backward = latestStatusEvents([b, a])[0]?.id;
+    expect(forward).toBe(backward);
+  });
 });
 
 describe('latestPersonEvents', () => {

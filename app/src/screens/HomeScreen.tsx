@@ -156,8 +156,10 @@ export function HomeScreen() {
           onClick={() => void submitSafe()}
           className="flex items-center justify-center gap-3 rounded-2xl bg-safe py-6 text-xl font-bold text-white shadow-lg active:opacity-90 disabled:opacity-50"
         >
-          <span className="text-2xl">✅</span>
-          {t('btnSafe')}
+          <span className="text-2xl" aria-hidden="true">
+            ✅
+          </span>
+          <span>{t('btnSafe')}</span>
         </button>
         <button
           type="button"
@@ -165,8 +167,10 @@ export function HomeScreen() {
           onClick={openHelp}
           className="flex items-center justify-center gap-3 rounded-2xl bg-need py-6 text-xl font-bold text-white shadow-lg active:opacity-90 disabled:opacity-50"
         >
-          <span className="text-2xl">🆘</span>
-          {t('btnHelp')}
+          <span className="text-2xl" aria-hidden="true">
+            🆘
+          </span>
+          <span>{t('btnHelp')}</span>
         </button>
         <button
           type="button"
@@ -174,8 +178,10 @@ export function HomeScreen() {
           onClick={openPerson}
           className="flex items-center justify-center gap-2 rounded-xl bg-surface-2 py-3.5 text-sm font-medium text-white/90 active:opacity-90 disabled:opacity-50"
         >
-          <span className="text-lg">📋</span>
-          {t('btnReportPerson')}
+          <span className="text-lg" aria-hidden="true">
+            📋
+          </span>
+          <span>{t('btnReportPerson')}</span>
         </button>
       </div>
 
@@ -225,8 +231,10 @@ export function HomeScreen() {
                     helpCategory === cat ? 'bg-accent text-white' : 'bg-surface-2 text-white/70'
                   }`}
                 >
-                  <span className="text-xl">{categoryIcon(cat)}</span>
-                  {categoryLabel(cat)}
+                  <span className="text-xl" aria-hidden="true">
+                    {categoryIcon(cat)}
+                  </span>
+                  <span>{categoryLabel(cat)}</span>
                 </button>
               ))}
             </div>
