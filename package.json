@@ -14,7 +14,7 @@
     "node:local": "npm run build -w app && npm run start -w relay",
     "build": "npm run build -w app",
     "build:relay": "npm run build -w relay",
-    "test": "npm run test -w shared",
+    "test": "npm run test -w shared && npm run test -w app",
     "test:relay": "npm run test -w relay",
     "lint": "npm run lint -w app",
     "gen:icons": "node scripts/gen-icons.mjs"

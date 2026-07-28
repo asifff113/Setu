@@ -1,7 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ingestEvents } from '../db/events';
 import { useI18n, type DictKey } from '../i18n';
+import {
+  decodeBundle,
+  encodeBundle,
+  filterForBundle,
+  type BundleFilter,
+} from '../lib/bundle';
 import { timeAgo, toBnDigits } from '../lib/time';
+import { useAppStore } from '../store/appStore';
+import { useEventsStore } from '../store/eventsStore';
 import { useSyncStore, type SyncStatus } from '../store/syncStore';
+import { BeamReceiver } from '../sync/beam/BeamReceiver';
+import { BeamSender } from '../sync/beam/BeamSender';
 import { QrScanner } from '../sync/QrScanner';
 
 const STATUS_META: Record<SyncStatus, { icon: string; key: DictKey; tint: string }> = {
@@ -10,6 +21,12 @@ const STATUS_META: Record<SyncStatus, { icon: string; key: DictKey; tint: string
   connecting: { icon: '🟡', key: 'syncStatusConnecting', tint: 'text-yellow-400' },
   offline: { icon: '🔴', key: 'syncStatusOffline', tint: 'text-white/60' },
 };
+
+const EXPORT_FILTERS: { value: BundleFilter; key: DictKey }[] = [
+  { value: 'all', key: 'syncExportFilterAll' },
+  { value: 'area', key: 'syncExportFilterArea' },
+  { value: 'day', key: 'syncExportFilterDay' },
+];
 
 export function SyncScreen() {
   const { t, lang } = useI18n();
@@ -22,9 +39,17 @@ export function SyncScreen() {
   const disconnectNode = useSyncStore((s) => s.disconnectNode);
   const refreshStats = useSyncStore((s) => s.refreshStats);
 
+  const events = useEventsStore((s) => s.events);
+  const refreshEvents = useEventsStore((s) => s.refresh);
+  const myGh = useAppStore((s) => s.settings?.gh ?? '');
+
   const [nodeInput, setNodeInput] = useState('');
   const [nodeError, setNodeError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [beamMode, setBeamMode] = useState<'send' | 'scan' | null>(null);
+  const [exportFilter, setExportFilter] = useState<BundleFilter>('all');
+  const [fileMsg, setFileMsg] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null);
+  const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     void refreshStats();
@@ -52,11 +77,90 @@ export function SyncScreen() {
     }
   }
 
+  async function handleExport() {
+    const selected = filterForBundle(events, exportFilter, myGh);
+    if (selected.length === 0) {
+      setFileMsg({ tone: 'err', text: t('syncExportEmpty') });
+      return;
+    }
+    const bytes = await encodeBundle(selected);
+    const blob = new Blob([bytes as BlobPart], { type: 'application/octet-stream' });
+    const name = `setu-${new Date().toISOString().slice(0, 10)}.setu`;
+    const file = new File([blob], name, { type: 'application/octet-stream' });
+
+    // Prefer the native share sheet (Android); fall back to a plain download.
+    if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: t('syncFileTitle') });
+        return;
+      } catch {
+        /* user cancelled or share failed → fall through to download */
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleImport(fileList: FileList | null) {
+    const file = fileList?.[0];
+    if (importRef.current) importRef.current.value = ''; // allow re-picking same file
+    if (!file) return;
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const imported = await decodeBundle(bytes);
+      const res = await ingestEvents(imported);
+      if (res.added > 0) {
+        await refreshEvents();
+        void refreshStats();
+      }
+      setFileMsg({
+        tone: 'ok',
+        text: `${t('syncImportDone')} — ${num(res.added)} ${t('beamNew')}, ${num(res.known)} ${t('beamKnown')}`,
+      });
+    } catch {
+      setFileMsg({ tone: 'err', text: t('syncFileFailed') });
+    }
+  }
+
   const meta = STATUS_META[status];
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pt-6 pb-8">
       <h1 className="px-1 text-2xl font-bold text-white">{t('syncTitle')}</h1>
+
+      {/* QR Beam — the offline showpiece */}
+      <section className="rounded-2xl bg-surface p-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-white/40">
+          {t('syncBeamTitle')}
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-white/40">{t('syncBeamHint')}</p>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setBeamMode('send')}
+            className="flex flex-col items-center gap-1 rounded-xl bg-accent py-4 text-sm font-semibold text-white active:opacity-90"
+          >
+            <span className="text-2xl" aria-hidden="true">
+              🔦
+            </span>
+            {t('syncBeamSend')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setBeamMode('scan')}
+            className="flex flex-col items-center gap-1 rounded-xl bg-surface-2 py-4 text-sm font-semibold text-white active:opacity-80"
+          >
+            <span className="text-2xl" aria-hidden="true">
+              📷
+            </span>
+            {t('syncBeamScan')}
+          </button>
+        </div>
+      </section>
 
       {/* Relay / auto status */}
       <section className="rounded-2xl bg-surface p-4">
@@ -139,6 +243,58 @@ export function SyncScreen() {
         )}
       </section>
 
+      {/* File export / import — a free extra transport */}
+      <section className="rounded-2xl bg-surface p-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-white/40">
+          {t('syncFileTitle')}
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-white/40">{t('syncFileHint')}</p>
+
+        <div className="mt-3 flex gap-1.5 rounded-xl bg-surface-2 p-1">
+          {EXPORT_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setExportFilter(f.value)}
+              className={`flex-1 rounded-lg py-2 text-xs font-medium transition-colors ${
+                exportFilter === f.value ? 'bg-accent text-white' : 'text-white/60'
+              }`}
+            >
+              {t(f.key)}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-3 flex gap-3">
+          <button
+            type="button"
+            onClick={() => void handleExport()}
+            className="flex-1 rounded-xl bg-surface-2 py-3 text-sm font-medium text-white/90 active:opacity-80"
+          >
+            {t('syncExport')}
+          </button>
+          <button
+            type="button"
+            onClick={() => importRef.current?.click()}
+            className="flex-1 rounded-xl bg-surface-2 py-3 text-sm font-medium text-white/90 active:opacity-80"
+          >
+            {t('syncImport')}
+          </button>
+        </div>
+        {fileMsg && (
+          <p className={`mt-3 text-xs ${fileMsg.tone === 'ok' ? 'text-safe' : 'text-need'}`}>
+            {fileMsg.text}
+          </p>
+        )}
+        <input
+          ref={importRef}
+          type="file"
+          accept=".setu,application/octet-stream"
+          className="hidden"
+          onChange={(e) => void handleImport(e.target.files)}
+        />
+      </section>
+
       {/* Storage / stats */}
       <section className="rounded-2xl bg-surface p-4">
         <p className="text-xs font-medium uppercase tracking-wide text-white/40">
@@ -156,17 +312,10 @@ export function SyncScreen() {
         </div>
       </section>
 
-      {/* Phase 5 transports — visible so the screen reads as intentional */}
-      <section className="rounded-2xl border border-dashed border-white/10 p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-white/30">
-          {t('syncComingTitle')}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/40">
-          <span className="rounded-lg bg-surface-2/60 px-3 py-2">🔦 {t('syncBeamSend')}</span>
-          <span className="rounded-lg bg-surface-2/60 px-3 py-2">📷 {t('syncBeamScan')}</span>
-          <span className="rounded-lg bg-surface-2/60 px-3 py-2">📄 {t('syncExport')}</span>
-        </div>
-      </section>
+      {beamMode === 'send' && (
+        <BeamSender events={events} onClose={() => setBeamMode(null)} />
+      )}
+      {beamMode === 'scan' && <BeamReceiver onClose={() => setBeamMode(null)} />}
 
       {scanning && (
         <QrScanner

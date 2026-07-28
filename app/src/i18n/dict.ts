@@ -109,10 +109,65 @@ export const dict = {
   syncEventCount: { bn: 'ইভেন্ট', en: 'events' },
   syncStorageUsed: { bn: 'ব্যবহৃত', en: 'used' },
 
-  syncComingTitle: { bn: 'পরবর্তী ধাপে (Phase 5)', en: 'Coming next (Phase 5)' },
-  syncBeamSend: { bn: 'বিম পাঠান', en: 'Beam send' },
+  // Sync — QR Beam card
+  syncBeamTitle: { bn: '🔦 বিম (QR)', en: '🔦 Beam (QR)' },
+  syncBeamHint: {
+    bn: 'ইন্টারনেট ছাড়াই দুই ফোনের স্ক্রিন ও ক্যামেরা দিয়ে ইভেন্ট আদান-প্রদান করুন।',
+    en: 'Exchange events between two phones using only screen + camera — no network.',
+  },
+  syncBeamSend: { bn: 'পাঠান', en: 'Send' },
   syncBeamScan: { bn: 'স্ক্যান', en: 'Scan' },
-  syncExport: { bn: 'এক্সপোর্ট', en: 'Export' },
+
+  // Sync — file export/import card
+  syncFileTitle: { bn: '📄 ফাইল', en: '📄 File' },
+  syncFileHint: {
+    bn: 'একটি .setu ফাইলে ইভেন্ট রপ্তানি করুন বা কারো পাঠানো ফাইল আমদানি করুন।',
+    en: 'Export events to a .setu file, or import a file someone shared.',
+  },
+  syncExport: { bn: 'রপ্তানি', en: 'Export' },
+  syncImport: { bn: 'আমদানি', en: 'Import' },
+  syncExportFilterAll: { bn: 'সব', en: 'All' },
+  syncExportFilterArea: { bn: 'আমার এলাকা', en: 'My area' },
+  syncExportFilterDay: { bn: '২৪ ঘণ্টা', en: 'Last 24h' },
+  syncExportEmpty: { bn: 'রপ্তানি করার মতো কিছু নেই।', en: 'Nothing to export.' },
+  syncImportDone: { bn: 'আমদানি সম্পন্ন', en: 'Import complete' },
+  syncFileFailed: { bn: 'ফাইলটি পড়া যায়নি।', en: "Couldn't read that file." },
+
+  // QR Beam — send
+  beamSendTitle: { bn: 'বিম পাঠান', en: 'Beam send' },
+  beamStop: { bn: 'বন্ধ', en: 'Stop' },
+  beamEmpty: {
+    bn: 'পাঠানোর মতো কোনো ইভেন্ট নেই। প্রথমে চেক-ইন করুন।',
+    en: 'No events to beam yet. Check in first.',
+  },
+  beamBuilding: { bn: 'প্রস্তুত হচ্ছে…', en: 'Preparing…' },
+  beamAim: {
+    bn: 'অন্য ফোনের ক্যামেরা এই কোডের দিকে ধরুন',
+    en: "Point the other phone's camera at this code",
+  },
+  beamDistance: { bn: 'ফোন দুটি ২০–৩০ সেমি দূরে রাখুন', en: 'Keep phones 20–30 cm apart' },
+  beamEventsSending: { bn: 'পাঠানো হচ্ছে', en: 'Sending' },
+  beamFrame: { bn: 'ফ্রেম', en: 'Frame' },
+  beamChunks: { bn: 'অংশ', en: 'chunks' },
+  beamSlower: { bn: 'সমস্যা হচ্ছে? ধীরে ও ছোট করুন', en: 'Trouble? Slower & smaller' },
+  beamFaster: { bn: 'দ্রুত গতিতে ফিরুন', en: 'Back to faster' },
+
+  // QR Beam — scan / receive
+  beamScanTitle: { bn: 'বিম স্ক্যান', en: 'Beam scan' },
+  beamSearching: {
+    bn: 'বিম খোঁজা হচ্ছে — অন্য ফোনের স্ক্রিনের দিকে ধরুন',
+    en: "Searching for a beam — point at the other phone's screen",
+  },
+  beamFramesSeen: { bn: 'ফ্রেম পাওয়া গেছে', en: 'frames seen' },
+  beamHoldSteady: { bn: 'স্থির রাখুন — সম্পূর্ণ না হওয়া পর্যন্ত', en: 'Hold steady until complete' },
+  beamDoneTitle: { bn: 'গ্রহণ সম্পন্ন', en: 'Received' },
+  beamNew: { bn: 'নতুন', en: 'new' },
+  beamKnown: { bn: 'আগে থেকেই ছিল', en: 'already known' },
+  beamRejected: { bn: 'বাতিল', en: 'rejected' },
+  beamFailed: {
+    bn: 'ডিকোড করা যায়নি। আবার চেষ্টা করুন।',
+    en: "Couldn't decode the beam. Please try again.",
+  },
 
   // QR scanner
   scanTitle: { bn: 'QR স্ক্যান', en: 'Scan QR' },
