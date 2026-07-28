@@ -205,6 +205,21 @@ export const dict = {
   badgeSms: { bn: 'এসএমএস এর মাধ্যমে', en: 'Via SMS' },
   badgeSigned: { bn: 'ডিভাইস দ্বারা স্বাক্ষরিত', en: 'Signed by device' },
 
+  // Map
+  mapTitle: { bn: 'ম্যাপ', en: 'Map' },
+  mapLegendSafe: { bn: 'নিরাপদ / পাওয়া গেছে', en: 'Safe / found' },
+  mapLegendNeed: { bn: 'সাহায্য দরকার / নিখোঁজ', en: 'Need help / missing' },
+  mapNoData: { bn: 'এখনও কোনো অবস্থান-ভিত্তিক রিপোর্ট নেই।', en: 'No location-based reports yet.' },
+  mapOfflineTitle: {
+    bn: '🗺️ অফলাইনে ম্যাপ পাওয়া যাচ্ছে না — এলাকা অনুযায়ী দেখানো হচ্ছে',
+    en: 'No map available offline — showing areas',
+  },
+  mapOfflineHint: {
+    bn: 'নেটওয়ার্ক ফিরলে সম্পূর্ণ ম্যাপ আবার দেখা যাবে।',
+    en: 'The full map comes back once you have a connection.',
+  },
+  mapReportsSuffix: { bn: 'টি রিপোর্ট', en: 'reports' },
+
   // Time
   justNow: { bn: 'এইমাত্র', en: 'just now' },
 } as const satisfies Record<string, Entry>;

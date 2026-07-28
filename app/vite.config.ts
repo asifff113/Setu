@@ -43,6 +43,21 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // App must still load from cache with the network unreachable.
         navigateFallback: '/index.html',
+        runtimeCaching: [
+          {
+            // OSM raster tiles (Map screen). CacheFirst + a bounded LRU so a
+            // laptop/phone that has browsed an area once can show it again
+            // with no network; the 200-tile cap keeps this from growing
+            // unbounded on a device that pans around the whole country.
+            urlPattern: /^https:\/\/[abc]\.tile\.openstreetmap\.org\/.*/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'osm-tiles',
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
       devOptions: {
         enabled: true,

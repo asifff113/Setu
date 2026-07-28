@@ -127,6 +127,13 @@ export function findAreaByCode(code: string): Area | undefined {
   return BY_CODE.get(code);
 }
 
+const BY_GH = new Map(AREAS.map((a) => [a.gh, a]));
+
+/** Exact reverse lookup: the seed area whose precomputed geohash matches an event's `gh`. */
+export function findAreaByGh(gh: string): Area | undefined {
+  return gh ? BY_GH.get(gh) : undefined;
+}
+
 /** Case/diacritic-loose search across English name, Bangla name, and code. */
 export function searchAreas(query: string): Area[] {
   const q = query.trim().toLowerCase();
