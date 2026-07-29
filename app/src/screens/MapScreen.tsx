@@ -1,5 +1,5 @@
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from 'react-leaflet';
 import { MissingCard, PersonStatusCard } from '../components/BoardCards';
 import { useI18n } from '../i18n';
@@ -58,14 +58,46 @@ export function MapScreen() {
   const events = useEventsStore((s) => s.events);
   const online = useOnlineStatus();
 
+  // `navigator.onLine` only reports link state, not tile reachability: behind a
+  // captive portal or a dead-but-connected Wi-Fi it stays true while every tile
+  // 404s, leaving a blank map. Watch the TileLayer's own load/error events and
+  // fall back to the area list when tiles are clearly unreachable.
+  const [tilesFailed, setTilesFailed] = useState(false);
+  const tileStats = useRef({ loaded: 0, errored: 0 });
+
+  // Regaining connectivity earns tiles a fresh attempt.
+  useEffect(() => {
+    if (online) {
+      tileStats.current = { loaded: 0, errored: 0 };
+      setTilesFailed(false);
+    }
+  }, [online]);
+
+  const tileHandlers = useMemo(
+    () => ({
+      tileload: () => {
+        tileStats.current.loaded += 1;
+      },
+      tileerror: () => {
+        const stats = tileStats.current;
+        stats.errored += 1;
+        // Several tiles failed and not one has ever loaded → the tile server is
+        // unreachable despite `online`. Swap to the fallback.
+        if (stats.loaded === 0 && stats.errored >= 3) setTilesFailed(true);
+      },
+    }),
+    [],
+  );
+
   const markers = useMemo(() => buildMapMarkers(events), [events]);
   const counts = useMemo(() => areaCounts(events), [events]);
+  const showMap = online && !tilesFailed;
 
   return (
     <div className="flex flex-col gap-4 px-4 pt-4 pb-6">
       <h1 className="text-xl font-bold text-white">{t('mapTitle')}</h1>
 
-      {online ? (
+      {showMap ? (
         <>
           <div className="h-[60vh] min-h-[320px] w-full overflow-hidden rounded-2xl">
             <MapContainer
@@ -77,6 +109,7 @@ export function MapScreen() {
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                eventHandlers={tileHandlers}
               />
               <FitBounds markers={markers} />
               {markers.map((marker) => (

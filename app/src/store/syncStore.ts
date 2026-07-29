@@ -11,8 +11,9 @@
  */
 import type { SetuEvent } from '@setu/shared';
 import { create } from 'zustand';
-import { ingestEvents, liveEventIds, liveEvents } from '../db/events';
+import { ingestEvents, liveEvents } from '../db/events';
 import { db } from '../db/schema';
+import { isDemoEvent } from '../lib/demoSeed';
 import { RelayWS, type RelayStatus, type RelayWSHooks } from '../sync/RelayWS';
 import { deriveAutoWsUrl, isPrivateWsUrl, normalizeNodeUrl, withGh } from '../sync/wsurl';
 import { useAppStore } from './appStore';
@@ -51,10 +52,16 @@ let started = false;
 
 export const useSyncStore = create<SyncState>((set, get) => {
   const hooks: RelayWSHooks = {
-    getLocalIds: () => liveEventIds(),
+    // Demo-seed events are excluded from both sides of reconciliation so the
+    // `?demo=1` board stays strictly local: we never advertise their ids in a
+    // `have`, and never answer a `want` with one. Without this, a public demo
+    // URL would upload per-visitor demo events onto the shared relay, which then
+    // rebroadcasts them to every device. See isDemoEvent.
+    getLocalIds: async () =>
+      (await liveEvents()).filter((e) => !isDemoEvent(e)).map((e) => e.id),
     getLocalEvents: async (ids) => {
       const wanted = new Set(ids);
-      return (await liveEvents()).filter((e) => wanted.has(e.id));
+      return (await liveEvents()).filter((e) => wanted.has(e.id) && !isDemoEvent(e));
     },
     onEvents: async (events) => {
       const res = await ingestEvents(events);

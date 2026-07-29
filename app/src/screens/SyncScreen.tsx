@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { ingestEvents } from '../db/events';
 import { useI18n, type DictKey } from '../i18n';
 import {
@@ -11,11 +11,16 @@ import { timeAgo, toBnDigits } from '../lib/time';
 import { useAppStore } from '../store/appStore';
 import { useEventsStore } from '../store/eventsStore';
 import { useSyncStore, type SyncStatus } from '../store/syncStore';
-import { BeamReceiver } from '../sync/beam/BeamReceiver';
-import { BeamSender } from '../sync/beam/BeamSender';
-import { ChirpReceiver } from '../sync/chirp/ChirpReceiver';
-import { ChirpSender } from '../sync/chirp/ChirpSender';
-import { QrScanner } from '../sync/QrScanner';
+
+// The transport overlays pull in the heavy codecs (jsQR + QR generation for
+// Beam, the ggwave WASM for Chirp) and only mount when the user opens one, so
+// they load lazily as their own chunks. All are precached by the PWA, so an
+// offline device still opens them instantly.
+const BeamReceiver = lazy(() => import('../sync/beam/BeamReceiver').then((m) => ({ default: m.BeamReceiver })));
+const BeamSender = lazy(() => import('../sync/beam/BeamSender').then((m) => ({ default: m.BeamSender })));
+const ChirpReceiver = lazy(() => import('../sync/chirp/ChirpReceiver').then((m) => ({ default: m.ChirpReceiver })));
+const ChirpSender = lazy(() => import('../sync/chirp/ChirpSender').then((m) => ({ default: m.ChirpSender })));
+const QrScanner = lazy(() => import('../sync/QrScanner').then((m) => ({ default: m.QrScanner })));
 
 const STATUS_META: Record<SyncStatus, { icon: string; key: DictKey; tint: string }> = {
   relay: { icon: '🟢', key: 'syncStatusRelay', tint: 'text-safe' },
@@ -346,28 +351,30 @@ export function SyncScreen() {
         </div>
       </section>
 
-      {beamMode === 'send' && (
-        <BeamSender events={events} onClose={() => setBeamMode(null)} />
-      )}
-      {beamMode === 'scan' && <BeamReceiver onClose={() => setBeamMode(null)} />}
+      <Suspense fallback={null}>
+        {beamMode === 'send' && (
+          <BeamSender events={events} onClose={() => setBeamMode(null)} />
+        )}
+        {beamMode === 'scan' && <BeamReceiver onClose={() => setBeamMode(null)} />}
 
-      {chirpMode === 'send' && (
-        <ChirpSender events={events} author={author} onClose={() => setChirpMode(null)} />
-      )}
-      {chirpMode === 'listen' && <ChirpReceiver onClose={() => setChirpMode(null)} />}
+        {chirpMode === 'send' && (
+          <ChirpSender events={events} author={author} onClose={() => setChirpMode(null)} />
+        )}
+        {chirpMode === 'listen' && <ChirpReceiver onClose={() => setChirpMode(null)} />}
 
-      {scanning && (
-        <QrScanner
-          title={t('syncNodeScanTitle')}
-          hint={t('syncNodeScanHint')}
-          onClose={() => setScanning(false)}
-          onResult={(text) => {
-            setScanning(false);
-            setNodeInput(text);
-            submitNode(text);
-          }}
-        />
-      )}
+        {scanning && (
+          <QrScanner
+            title={t('syncNodeScanTitle')}
+            hint={t('syncNodeScanHint')}
+            onClose={() => setScanning(false)}
+            onResult={(text) => {
+              setScanning(false);
+              setNodeInput(text);
+              submitNode(text);
+            }}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

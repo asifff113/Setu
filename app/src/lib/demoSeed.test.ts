@@ -6,7 +6,13 @@ import {
   verifyEvent,
 } from '@setu/shared';
 import { describe, expect, it } from 'vitest';
-import { buildDemoEvents, DEMO_BULLETIN_ID, hasDemoSeed } from './demoSeed.js';
+import {
+  buildDemoEvents,
+  DEMO_AUTHORS,
+  DEMO_BULLETIN_ID,
+  hasDemoSeed,
+  isDemoEvent,
+} from './demoSeed.js';
 
 describe('demo seed', () => {
   it('builds ~16 events, every one verifiable', () => {
@@ -45,5 +51,26 @@ describe('demo seed', () => {
     const events = buildDemoEvents();
     expect(hasDemoSeed(events)).toBe(true);
     expect(hasDemoSeed([])).toBe(false);
+  });
+
+  it('signs each synthetic event with a distinct, known demo key', () => {
+    const events = buildDemoEvents();
+    const synthetic = events.filter((e) => e.id !== DEMO_BULLETIN_ID);
+    // Distinct authors so the per-person board dedup keeps them as separate cards…
+    expect(new Set(synthetic.map((e) => e.au)).size).toBe(synthetic.length);
+    // …and every one is a recognized demo author.
+    expect(synthetic.every((e) => DEMO_AUTHORS.has(e.au))).toBe(true);
+  });
+
+  it('recognizes every seed event as demo-only (so sync can exclude them)', () => {
+    for (const event of buildDemoEvents()) {
+      expect(isDemoEvent(event)).toBe(true);
+    }
+  });
+
+  it('does not flag a real user event as demo', () => {
+    // Same shape as a demo event but a different author + id => must sync.
+    const realish = { ...buildDemoEvents()[2]!, au: 'someRealUserAuthorKeyBase64url', id: 'realid' };
+    expect(isDemoEvent(realish)).toBe(false);
   });
 });

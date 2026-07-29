@@ -6,8 +6,13 @@
  * every connected app instantly.
  *
  * JavaScript is allowed here (unlike /lite) — it's an interactive demo tool.
+ *
+ * `inboundKey` is the optional SMS_INBOUND_KEY: when the relay is locked down,
+ * it's embedded here so the simulator's POSTs still authenticate. JSON.stringify
+ * yields a safe JS string literal (or `undefined` -> no header sent).
  */
-export function smsSimPage(): string {
+export function smsSimPage(inboundKey?: string): string {
+  const keyLiteral = JSON.stringify(inboundKey ?? '');
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -64,6 +69,7 @@ and the relay's reply appears below.</p>
 <p class="foot">Zero-JS read-only board: <a href="/lite">/lite</a> &nbsp;·&nbsp; Local node QR: <a href="/node-qr">/node-qr</a></p>
 
 <script>
+var INBOUND_KEY = ${keyLiteral};
 var EXAMPLES = [
   'SAFE Rahim Mirpur',
   'HELP WATER Karim Feni - stuck on roof',
@@ -101,9 +107,11 @@ function send(){
   bubble('out', text);
   textEl.value = '';
   sendEl.disabled = true;
+  var headers = { 'content-type': 'application/json' };
+  if (INBOUND_KEY) headers['x-setu-key'] = INBOUND_KEY;
   fetch('/api/sms/inbound', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: headers,
     body: JSON.stringify({ from: fromEl.value.trim(), message: text })
   })
   .then(function(r){ return r.json(); })

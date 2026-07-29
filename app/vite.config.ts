@@ -43,6 +43,18 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // App must still load from cache with the network unreachable.
         navigateFallback: '/index.html',
+        // …but these are relay-owned routes, not SPA routes. Without this, an
+        // installed PWA could serve index.html over a navigation to /lite or the
+        // SMS simulator instead of letting the relay answer. API/health/ws are
+        // never navigations, but denylisting them is belt-and-suspenders.
+        navigateFallbackDenylist: [
+          /^\/lite/,
+          /^\/sms-sim/,
+          /^\/node-qr/,
+          /^\/api\//,
+          /^\/healthz/,
+          /^\/ws/,
+        ],
         runtimeCaching: [
           {
             // OSM raster tiles (Map screen). CacheFirst + a bounded LRU so a

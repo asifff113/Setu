@@ -5,6 +5,8 @@ import {
   createEvent,
   deriveId,
   isExpired,
+  isValidEventShape,
+  MAX_EVENT_BYTES,
   signedBytes,
   unionById,
   verifyEvent,
@@ -174,6 +176,38 @@ describe('tamper rejection', () => {
     expect(verifyEvent({ ...e, sig: toBase64url(new Uint8Array(64)) })).toBe(
       false,
     );
+  });
+});
+
+describe('event shape / size gate', () => {
+  it('accepts a normal event and one with a full multibyte message', () => {
+    expect(isValidEventShape(makeCheckin())).toBe(true);
+    const help = createEvent(
+      { t: 'help', ts: 1, gh: 'wh0r', st: 'need', cat: 'water', msg: 'পা'.repeat(140) },
+      kp,
+    );
+    expect(isValidEventShape(help)).toBe(true);
+  });
+
+  it('rejects an event whose serialized size blows past the ceiling', () => {
+    // Sign a 1 MB blob with our own key: it verifies cryptographically…
+    const huge = createEvent({ t: 'bulletin', ts: 1, gh: 'aa', msg: 'x'.repeat(1_000_000) }, kp);
+    expect(verifyEvent(huge)).toBe(true);
+    // …but the shape gate stops it reaching any store.
+    expect(isValidEventShape(huge)).toBe(false);
+    expect(JSON.stringify(huge).length).toBeGreaterThan(MAX_EVENT_BYTES);
+  });
+
+  it('rejects wrong-typed core fields, unknown types, and a bad loc', () => {
+    const e = makeCheckin();
+    expect(isValidEventShape({ ...e, gh: 12 as never })).toBe(false);
+    expect(isValidEventShape({ ...e, ts: 'soon' as never })).toBe(false);
+    expect(isValidEventShape({ ...e, ttl: -1 })).toBe(false);
+    expect(isValidEventShape({ ...e, t: 'nope' as never })).toBe(false);
+    expect(isValidEventShape({ ...e, v: 2 as never })).toBe(false);
+    expect(isValidEventShape({ ...e, msg: 42 as never })).toBe(false);
+    expect(isValidEventShape({ ...e, loc: [1] as never })).toBe(false);
+    expect(isValidEventShape(null as never)).toBe(false);
   });
 });
 

@@ -1,15 +1,27 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { tryDemo } from './lib/demoTrigger';
 import { BoardScreen } from './screens/BoardScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { InfoScreen } from './screens/InfoScreen';
-import { MapScreen } from './screens/MapScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { PublishScreen } from './screens/PublishScreen';
 import { SyncScreen } from './screens/SyncScreen';
 import { useAppStore } from './store/appStore';
+
+// Leaflet + react-leaflet are the app's heaviest dependency and only the Map
+// screen needs them, so they load as their own chunk on first visit to /map.
+// vite-plugin-pwa precaches every built JS chunk, so this stays offline-safe.
+const MapScreen = lazy(() => import('./screens/MapScreen').then((m) => ({ default: m.MapScreen })));
+
+function ScreenFallback() {
+  return (
+    <div className="flex h-[60vh] items-center justify-center">
+      <span className="text-lg font-semibold text-white/40">সেতু</span>
+    </div>
+  );
+}
 
 export default function App() {
   const ready = useAppStore((s) => s.ready);
@@ -43,7 +55,14 @@ export default function App() {
         <Route element={<Layout />}>
           <Route index element={<HomeScreen />} />
           <Route path="board" element={<BoardScreen />} />
-          <Route path="map" element={<MapScreen />} />
+          <Route
+            path="map"
+            element={
+              <Suspense fallback={<ScreenFallback />}>
+                <MapScreen />
+              </Suspense>
+            }
+          />
           <Route path="sync" element={<SyncScreen />} />
           <Route path="info" element={<InfoScreen />} />
         </Route>

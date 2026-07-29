@@ -1,4 +1,5 @@
 import { serve } from '@hono/node-server';
+import { getConnInfo } from '@hono/node-server/conninfo';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { existsSync, readFileSync } from 'node:fs';
@@ -8,10 +9,12 @@ import { fileURLToPath } from 'node:url';
 import { loadRelayIdentity } from './identity.js';
 import { litePage } from './lite.js';
 import { nodeQrPage } from './nodeqr.js';
+import { createRateLimiter } from './ratelimit.js';
 import { gatewayFromEnv, handleInboundSms } from './sms.js';
 import { smsSimPage } from './smssim.js';
 import { EventStore } from './store.js';
 import { attachSync, type SyncHub } from './sync.js';
+import type { Context } from 'hono';
 import type { SetuEvent } from '@setu/shared';
 
 // Resolved relative to this file (relay/src/index.ts -> ../../app/dist) so it
@@ -32,6 +35,39 @@ const store = new EventStore(dataDir);
 const identity = loadRelayIdentity(dataDir);
 const gateway = gatewayFromEnv(process.env);
 
+// SMS webhook hardening. The endpoint stays open by default (the demo needs it
+// for /sms-sim and a gateway that can't add custom headers), but is always
+// rate-limited per client, and can be fully locked with a shared secret:
+//   SMS_INBOUND_KEY   when set, inbound requests must carry it (see smsAuthOk)
+//   SMS_RATE_LIMIT    max inbound requests per window per client IP (default 30)
+//   SMS_RATE_WINDOW_MS  sliding window in ms (default 60_000)
+const smsInboundKey = process.env.SMS_INBOUND_KEY?.trim() || undefined;
+const smsRateLimit = Number(process.env.SMS_RATE_LIMIT ?? 30);
+const smsRateWindowMs = Number(process.env.SMS_RATE_WINDOW_MS ?? 60_000);
+const smsLimiter = createRateLimiter(smsRateLimit, smsRateWindowMs);
+
+/** Best-effort client identity for rate-limiting: Fly/proxy header, else socket. */
+function clientKey(c: Context): string {
+  const fly = c.req.header('fly-client-ip')?.trim();
+  if (fly) return fly;
+  const xff = c.req.header('x-forwarded-for')?.split(',')[0]?.trim();
+  if (xff) return xff;
+  try {
+    return getConnInfo(c).remote.address ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+/** True when no inbound secret is configured, or the request presents it. */
+function smsAuthOk(c: Context): boolean {
+  if (!smsInboundKey) return true;
+  const header = c.req.header('x-setu-key')?.trim();
+  if (header && header === smsInboundKey) return true;
+  const auth = c.req.header('authorization')?.trim();
+  return auth === smsInboundKey || auth === `Bearer ${smsInboundKey}`;
+}
+
 // Assigned once attachSync runs (after serve() below). Until then, and if the
 // webhook is somehow hit mid-startup, fall back to ingest-only (no broadcast)
 // so an inbound SMS is still stored rather than lost.
@@ -49,12 +85,23 @@ app.get('/node-qr', async (c) => c.html(await nodeQrPage(port)));
 // GET /lite — zero-JS read-only board (2G / Opera Mini fallback).
 app.get('/lite', (c) => c.html(litePage(store)));
 
-// GET /sms-sim — fake-phone demo posting to the webhook below.
-app.get('/sms-sim', (c) => c.html(smsSimPage()));
+// GET /sms-sim — fake-phone demo posting to the webhook below. When an inbound
+// secret is set, it's injected here so the simulator keeps working (note: that
+// exposes the key to anyone who can load this page — for a hard lockdown,
+// restrict /sms-sim too; the key's real job is authenticating a real gateway).
+app.get('/sms-sim', (c) => c.html(smsSimPage(smsInboundKey)));
 
 // POST /api/sms/inbound — gateway webhook (android-sms-gateway + httpSMS + the
-// simulator). Parses the SMS, stores/answers it, and replies via the gateway.
+// simulator). Rate-limited per client, and gated by SMS_INBOUND_KEY when set,
+// so a public relay can't be used to spoof events or amplify SMS. Parses the
+// SMS, stores/answers it, and replies via the gateway.
 app.post('/api/sms/inbound', async (c) => {
+  if (!smsLimiter.allow(clientKey(c))) {
+    return c.json({ ok: false, error: 'rate limited' }, 429);
+  }
+  if (!smsAuthOk(c)) {
+    return c.json({ ok: false, error: 'unauthorized' }, 401);
+  }
   let body: unknown;
   try {
     body = await c.req.json();
@@ -99,6 +146,10 @@ const server = serve({ fetch: app.fetch, port }, (info) => {
     gateway.url
       ? `[setu-relay] outbound SMS via ${gateway.kind} gateway ${gateway.url}`
       : '[setu-relay] no GATEWAY_URL set — SMS replies are logged only',
+  );
+  console.log(
+    `[setu-relay] sms webhook ${smsInboundKey ? 'requires SMS_INBOUND_KEY' : 'open (no SMS_INBOUND_KEY)'}, ` +
+      `rate-limited ${smsRateLimit}/${Math.round(smsRateWindowMs / 1000)}s per client`,
   );
   console.log(
     hasBuiltApp

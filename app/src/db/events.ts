@@ -1,4 +1,4 @@
-import { isExpired, verifyEvent, type SetuEvent } from '@setu/shared';
+import { isExpired, isValidEventShape, verifyEvent, type SetuEvent } from '@setu/shared';
 import { db } from './schema';
 
 /** Soft cap; older-expired-first pruning keeps IndexedDB bounded on cheap phones. */
@@ -23,7 +23,9 @@ export async function ingestEvents(events: SetuEvent[]): Promise<IngestResult> {
   const result: IngestResult = { added: 0, known: 0, rejected: 0 };
   const valid: SetuEvent[] = [];
   for (const event of events) {
-    if (verifyEvent(event)) valid.push(event);
+    // Shape/size gate runs first (cheap, pre-crypto): drops malformed or
+    // oversized events before they cost a signature verification.
+    if (isValidEventShape(event) && verifyEvent(event)) valid.push(event);
     else result.rejected++;
   }
   if (valid.length === 0) return result;
@@ -47,13 +49,6 @@ export async function liveEvents(
 ): Promise<SetuEvent[]> {
   const all = await db.events.toArray();
   return all.filter((e) => !isExpired(e, nowSeconds));
-}
-
-/** All non-expired ids — used by RelayWS to advertise `{have: [...]}`. */
-export async function liveEventIds(
-  nowSeconds: number = Math.floor(Date.now() / 1000),
-): Promise<string[]> {
-  return (await liveEvents(nowSeconds)).map((e) => e.id);
 }
 
 /**

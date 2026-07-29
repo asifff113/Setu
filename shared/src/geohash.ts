@@ -4,9 +4,10 @@ const BASE32 = '0123456789bcdefghjkmnpqrstuvwxyz';
  * Standard geohash encoder. `areas.ts` calls this at precision 6 (~1.2km x
  * 0.6km cells) for the `Area.gh` "area" key — precision 4 (~39km x 20km) is
  * too coarse to separate Bangladesh's closely-clustered city thanas (several
- * Dhaka neighborhoods collapse to one cell at precision 4-5).
+ * Dhaka neighborhoods collapse to one cell at precision 4-5). `precision` is
+ * required (no default) so a bare call can't silently produce a too-coarse hash.
  */
-export function geohashEncode(lat: number, lon: number, precision = 4): string {
+export function geohashEncode(lat: number, lon: number, precision: number): string {
   let latMin = -90;
   let latMax = 90;
   let lonMin = -180;
