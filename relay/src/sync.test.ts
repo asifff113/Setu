@@ -46,6 +46,14 @@ afterEach(async () => {
 });
 
 describe('relay /ws message handling', () => {
+  it('closes clients that exceed reconciliation limits', async () => {
+    const { server, port } = await startRelay();
+    relayServer = server;
+    const ws = await connect(port);
+    const closed = new Promise<number>((resolve) => ws.on('close', resolve));
+    ws.send(JSON.stringify({ type: 'have', ids: Array.from({ length: 5001 }, () => 'a'.repeat(22)) }));
+    expect(await closed).toBe(1008);
+  });
   it('survives non-object JSON frames (null / number / array / string) without crashing', async () => {
     const { server, port } = await startRelay();
     relayServer = server;

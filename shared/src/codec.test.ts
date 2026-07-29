@@ -177,6 +177,12 @@ describe('tamper rejection', () => {
       false,
     );
   });
+
+  it('rejects non-canonical signature and author encodings', () => {
+    const e = makeCheckin();
+    expect(verifyEvent({ ...e, sig: `${e.sig}=` })).toBe(false);
+    expect(verifyEvent({ ...e, au: `${e.au}=` })).toBe(false);
+  });
 });
 
 describe('event shape / size gate', () => {
@@ -207,6 +213,10 @@ describe('event shape / size gate', () => {
     expect(isValidEventShape({ ...e, v: 2 as never })).toBe(false);
     expect(isValidEventShape({ ...e, msg: 42 as never })).toBe(false);
     expect(isValidEventShape({ ...e, loc: [1] as never })).toBe(false);
+    expect(isValidEventShape({ ...e, loc: [91, 0] })).toBe(false);
+    expect(isValidEventShape({ ...e, st: 'bogus' as never })).toBe(false);
+    expect(isValidEventShape({ ...e, ttl: Number.MAX_SAFE_INTEGER })).toBe(false);
+    expect(isValidEventShape({ ...e, gh: 'not-a-geohash!' })).toBe(false);
     expect(isValidEventShape(null as never)).toBe(false);
   });
 });

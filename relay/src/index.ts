@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 import { getConnInfo } from '@hono/node-server/conninfo';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
+import { secureHeaders } from 'hono/secure-headers';
 import { existsSync, readFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
@@ -42,16 +43,27 @@ const gateway = gatewayFromEnv(process.env);
 //   SMS_RATE_LIMIT    max inbound requests per window per client IP (default 30)
 //   SMS_RATE_WINDOW_MS  sliding window in ms (default 60_000)
 const smsInboundKey = process.env.SMS_INBOUND_KEY?.trim() || undefined;
+const smsSimKey = process.env.SMS_SIM_KEY?.trim() || undefined;
 const smsRateLimit = Number(process.env.SMS_RATE_LIMIT ?? 30);
 const smsRateWindowMs = Number(process.env.SMS_RATE_WINDOW_MS ?? 60_000);
 const smsLimiter = createRateLimiter(smsRateLimit, smsRateWindowMs);
+const MAX_SMS_BODY_BYTES = 16 * 1024;
+
+if (process.env.NODE_ENV === 'production' && !smsInboundKey) {
+  throw new Error('SMS_INBOUND_KEY is required in production');
+}
+if (gateway.url && !smsInboundKey) {
+  throw new Error('SMS_INBOUND_KEY is required when GATEWAY_URL is configured');
+}
 
 /** Best-effort client identity for rate-limiting: Fly/proxy header, else socket. */
 function clientKey(c: Context): string {
   const fly = c.req.header('fly-client-ip')?.trim();
   if (fly) return fly;
-  const xff = c.req.header('x-forwarded-for')?.split(',')[0]?.trim();
-  if (xff) return xff;
+  if (process.env.TRUST_PROXY === '1') {
+    const xff = c.req.header('x-forwarded-for')?.split(',')[0]?.trim();
+    if (xff) return xff;
+  }
   try {
     return getConnInfo(c).remote.address ?? 'unknown';
   } catch {
@@ -59,9 +71,10 @@ function clientKey(c: Context): string {
   }
 }
 
-/** True when no inbound secret is configured, or the request presents it. */
 function smsAuthOk(c: Context): boolean {
-  if (!smsInboundKey) return true;
+  const sim = c.req.header('x-setu-sim-key')?.trim();
+  if (smsSimKey && sim === smsSimKey) return true;
+  if (!smsInboundKey) return process.env.NODE_ENV !== 'production' && !gateway.url;
   const header = c.req.header('x-setu-key')?.trim();
   if (header && header === smsInboundKey) return true;
   const auth = c.req.header('authorization')?.trim();
@@ -75,6 +88,25 @@ let publish: (events: SetuEvent[]) => SetuEvent[] = (events) =>
   store.ingest(events, Math.floor(Date.now() / 1000));
 
 const app = new Hono();
+app.use('*', secureHeaders({
+  contentSecurityPolicy: {
+    defaultSrc: ["'self'"],
+    scriptSrc: ["'self'", "'unsafe-inline'"],
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    imgSrc: ["'self'", 'data:', 'blob:', 'https://*.tile.openstreetmap.org'],
+    connectSrc: ["'self'", 'ws:', 'wss:'],
+    mediaSrc: ["'self'", 'blob:'],
+    workerSrc: ["'self'", 'blob:'],
+    objectSrc: ["'none'"],
+    frameAncestors: ["'none'"],
+  },
+  referrerPolicy: 'no-referrer',
+  permissionsPolicy: {
+    camera: ['self'],
+    microphone: ['self'],
+    geolocation: ['self'],
+  },
+}));
 
 app.get('/healthz', (c) => c.json({ ok: true, events: store.count() }));
 
@@ -89,7 +121,7 @@ app.get('/lite', (c) => c.html(litePage(store)));
 // secret is set, it's injected here so the simulator keeps working (note: that
 // exposes the key to anyone who can load this page — for a hard lockdown,
 // restrict /sms-sim too; the key's real job is authenticating a real gateway).
-app.get('/sms-sim', (c) => c.html(smsSimPage(smsInboundKey)));
+app.get('/sms-sim', (c) => c.html(smsSimPage()));
 
 // POST /api/sms/inbound — gateway webhook (android-sms-gateway + httpSMS + the
 // simulator). Rate-limited per client, and gated by SMS_INBOUND_KEY when set,
@@ -102,9 +134,17 @@ app.post('/api/sms/inbound', async (c) => {
   if (!smsAuthOk(c)) {
     return c.json({ ok: false, error: 'unauthorized' }, 401);
   }
+  const contentLength = Number(c.req.header('content-length') ?? 0);
+  if (!Number.isFinite(contentLength) || contentLength > MAX_SMS_BODY_BYTES) {
+    return c.json({ ok: false, error: 'payload too large' }, 413);
+  }
   let body: unknown;
   try {
-    body = await c.req.json();
+    const text = await c.req.text();
+    if (new TextEncoder().encode(text).length > MAX_SMS_BODY_BYTES) {
+      return c.json({ ok: false, error: 'payload too large' }, 413);
+    }
+    body = JSON.parse(text);
   } catch {
     body = undefined;
   }
@@ -148,7 +188,7 @@ const server = serve({ fetch: app.fetch, port }, (info) => {
       : '[setu-relay] no GATEWAY_URL set — SMS replies are logged only',
   );
   console.log(
-    `[setu-relay] sms webhook ${smsInboundKey ? 'requires SMS_INBOUND_KEY' : 'open (no SMS_INBOUND_KEY)'}, ` +
+    `[setu-relay] sms webhook ${smsInboundKey ? 'requires SMS_INBOUND_KEY' : 'local demo mode only'}, ` +
       `rate-limited ${smsRateLimit}/${Math.round(smsRateWindowMs / 1000)}s per client`,
   );
   console.log(

@@ -8,6 +8,7 @@ import { useSyncStore } from './syncStore';
 interface EventsState {
   /** true once the initial load from IndexedDB has completed */
   ready: boolean;
+  error: string | null;
   /** all non-expired events, unsorted; screens derive their own views */
   events: SetuEvent[];
 
@@ -29,6 +30,7 @@ let hydration: Promise<void> | null = null;
 
 export const useEventsStore = create<EventsState>((set, get) => ({
   ready: false,
+  error: null,
   events: [],
 
   hydrate: () => {
@@ -37,8 +39,10 @@ export const useEventsStore = create<EventsState>((set, get) => ({
       hydration = (async () => {
         await pruneEvents();
         const events = await liveEvents();
-        set({ events, ready: true });
-      })();
+        set({ events, ready: true, error: null });
+      })().catch((error: unknown) => {
+        set({ ready: true, error: error instanceof Error ? error.message : 'storage unavailable' });
+      });
     }
     return hydration;
   },

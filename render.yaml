@@ -18,3 +18,13 @@ services:
         value: 8787
       - key: NODE_ENV
         value: production
+      - key: TRUST_PROXY
+        value: 1
+      - key: SMS_INBOUND_KEY
+        generateValue: true
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: setu-data
+      mountPath: /var/data
+      sizeGB: 1

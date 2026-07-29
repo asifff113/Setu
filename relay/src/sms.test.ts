@@ -34,19 +34,20 @@ describe('extractInbound', () => {
   it('reads the android-sms-gateway (capcom6) shape', () => {
     expect(
       extractInbound({ event: 'sms:received', payload: { message: 'SAFE Rahim Mirpur', phoneNumber: '+8801711000001' } }),
-    ).toEqual({ text: 'SAFE Rahim Mirpur', from: '+8801711000001' });
+    ).toEqual({ text: 'SAFE Rahim Mirpur', from: '+8801711000001', messageId: undefined });
   });
 
   it('reads the httpSMS (CloudEvents) shape', () => {
     expect(
       extractInbound({ event: 'message.phone.received', data: { contents: 'FIND Rahim', from: '+8801711000002' } }),
-    ).toEqual({ text: 'FIND Rahim', from: '+8801711000002' });
+    ).toEqual({ text: 'FIND Rahim', from: '+8801711000002', messageId: undefined });
   });
 
   it('reads the simple simulator/curl shape', () => {
     expect(extractInbound({ message: 'HELP FOOD Karim', from: '+880000' })).toEqual({
       text: 'HELP FOOD Karim',
       from: '+880000',
+      messageId: undefined,
     });
   });
 
@@ -126,11 +127,11 @@ describe('handleInboundSms — acceptance path', () => {
   it('supersedes a MISSING with a later FOUND when answering FIND', async () => {
     const now = 1_700_000_000;
     const { deps } = makeDeps(now);
-    await handleInboundSms({ message: 'MISSING Fatima Sylhet', from: '+1' }, { ...deps, now: () => now });
-    await handleInboundSms({ message: 'FOUND Fatima Sylhet', from: '+2' }, { ...deps, now: () => now + 300 });
+    await handleInboundSms({ message: 'MISSING Fatima Sylhet', from: '+8801' }, { ...deps, now: () => now });
+    await handleInboundSms({ message: 'FOUND Fatima Sylhet', from: '+8802' }, { ...deps, now: () => now + 300 });
 
     const find = await handleInboundSms(
-      { message: 'FIND Fatima', from: '+3' },
+      { message: 'FIND Fatima', from: '+8803' },
       { ...deps, now: () => now + 600 },
     );
     expect(find.json.reply).toContain('Fatima: FOUND, Sylhet');
@@ -150,5 +151,11 @@ describe('handleInboundSms — acceptance path', () => {
     const res = await handleInboundSms({ nope: true }, deps);
     expect(res.status).toBe(400);
     expect(res.json.ok).toBe(false);
+  });
+
+  it('rejects oversized messages and invalid sender numbers', async () => {
+    const { deps } = makeDeps(1_700_000_000);
+    expect((await handleInboundSms({ message: 'x'.repeat(1001), from: '+8801711000001' }, deps)).status).toBe(400);
+    expect((await handleInboundSms({ message: 'SAFE Rahim', from: 'not-a-phone' }, deps)).status).toBe(400);
   });
 });

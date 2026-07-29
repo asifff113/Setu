@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_CHUNK_SIZE,
   FALLBACK_CHUNK_SIZE,
+  MAX_BEAM_BYTES,
   FountainDecoder,
   FountainEncoder,
   frameIndices,
@@ -111,6 +112,16 @@ describe('frame header', () => {
     const corrupt = good.slice();
     corrupt[0] = 0x00; // break the magic
     expect(readFrame(corrupt)).toBeNull();
+  });
+
+  it('rejects oversized metadata before decoder allocation', () => {
+    const frame = new FountainEncoder(makePayload(100)).frame(0);
+    const hugeK = frame.slice();
+    new DataView(hugeK.buffer).setUint16(7, 65535, false);
+    expect(readFrame(hugeK)).toBeNull();
+    const hugeLen = frame.slice();
+    new DataView(hugeLen.buffer).setUint32(9, MAX_BEAM_BYTES + 1, false);
+    expect(readFrame(hugeLen)).toBeNull();
   });
 
   it('parseFrameText decodes base64url and ignores non-frames', () => {

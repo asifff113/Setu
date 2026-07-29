@@ -53,7 +53,7 @@ const VERIFIED_BULLETIN: SetuEvent = {
   v: 1,
   t: 'bulletin',
   ts: 1785278940,
-  ttl: 157680000, // 5 years
+  ttl: 157680000, // Synthetic local fixture; never reaches an ingest trust boundary.
   gh: MIRPUR.gh,
   n: 'Setu Emergency Coordination',
   msg: 'মিরপুরে অস্থায়ী আশ্রয়কেন্দ্র খোলা হয়েছে — মিরপুর ১০ নং গোল চত্বরে। খাবার ও বিশুদ্ধ পানি সরবরাহ চলছে।',

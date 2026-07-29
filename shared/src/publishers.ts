@@ -16,6 +16,8 @@ export const PINNED_PUBLISHERS: readonly string[] = [
   // Demo publisher, generated for this hackathon build. The matching secret
   // lives in DEMO_PUBLISHER.local.md (gitignored) — paste it into /publish
   // to sign bulletins that render with the ✓ verified badge.
+  // This key verifies only the immutable, synthetic demo bulletin. Its private
+  // key has been destroyed and cannot publish new trusted notices.
   'uxqNicQzfR99CtZR4A1kVcn9bTkQAnuoZMEry0E1AYs',
 ];
 

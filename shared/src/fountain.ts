@@ -26,6 +26,10 @@ import { fromBase64url, toBase64url } from './base64.js';
 export const DEFAULT_CHUNK_SIZE = 180;
 /** Fallback chunk size when decoding is poor (smaller/denser payload, easier QR). */
 export const FALLBACK_CHUNK_SIZE = 120;
+export const MAX_BEAM_BYTES = 2 * 1024 * 1024;
+export const MAX_FOUNTAIN_CHUNKS = Math.ceil(MAX_BEAM_BYTES / FALLBACK_CHUNK_SIZE);
+export const MAX_FRAME_PAYLOAD_BYTES = DEFAULT_CHUNK_SIZE;
+const MAX_PENDING_CHECKS = MAX_FOUNTAIN_CHUNKS * 2;
 
 // 'SB1' magic + fixed-width header fields.
 const MAGIC_0 = 0x53; // 'S'
@@ -137,7 +141,13 @@ export function readFrame(bytes: Uint8Array): ParsedFrame | null {
   const seed = dv.getUint32(3, false);
   const k = dv.getUint16(7, false);
   const len = dv.getUint32(9, false);
-  if (k < 1) return null;
+  const payloadLength = bytes.length - HEADER_SIZE;
+  if (
+    k < 1 || k > MAX_FOUNTAIN_CHUNKS ||
+    payloadLength < 1 || payloadLength > MAX_FRAME_PAYLOAD_BYTES ||
+    len < 1 || len > MAX_BEAM_BYTES ||
+    len > k * payloadLength || len <= (k - 1) * payloadLength
+  ) return null;
   // Copy the payload so the decoder can XOR in place without touching the input.
   const payload = bytes.slice(HEADER_SIZE);
   return { seed, k, len, payload };
@@ -166,6 +176,12 @@ export class FountainEncoder {
   private readonly chunks: Uint8Array[];
 
   constructor(payload: Uint8Array, chunkSize: number = DEFAULT_CHUNK_SIZE) {
+    if (!Number.isInteger(chunkSize) || chunkSize < 1 || chunkSize > MAX_FRAME_PAYLOAD_BYTES) {
+      throw new Error('invalid fountain chunk size');
+    }
+    if (payload.length < 1 || payload.length > MAX_BEAM_BYTES) {
+      throw new Error('beam payload exceeds limit');
+    }
     this.chunkSize = chunkSize;
     this.len = payload.length;
     this.k = Math.max(1, Math.ceil(payload.length / chunkSize));
@@ -284,7 +300,9 @@ export class FountainDecoder {
       this.recover(firstOf(remaining), data);
       this.propagate();
     } else {
-      this.pending.push({ indices: remaining, data });
+      if (this.pending.length < MAX_PENDING_CHECKS) {
+        this.pending.push({ indices: remaining, data });
+      }
     }
     return true;
   }

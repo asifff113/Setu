@@ -10,7 +10,7 @@
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { isValidEventShape, verifyEvent, type SetuEvent } from '@setu/shared';
+import { isExpired, isFutureDated, isValidEventShape, verifyEvent, type SetuEvent } from '@setu/shared';
 
 interface BlobRow {
   blob: string;
@@ -69,7 +69,7 @@ export class EventStore {
     const run = this.db.transaction((list: SetuEvent[]) => {
       for (const ev of list) {
         if (!isValidEventShape(ev)) continue; // malformed / oversized (cheap, pre-crypto)
-        if (ev.ts + ev.ttl < now) continue; // expired
+        if (isExpired(ev, now) || isFutureDated(ev, now)) continue;
         if (this.stmtHas.get(ev.id)) continue; // already known
         if (!verifyEvent(ev)) continue; // untrusted / tampered
         this.stmtInsert.run(ev.id, ev.gh, ev.ts, ev.ttl, JSON.stringify(ev));

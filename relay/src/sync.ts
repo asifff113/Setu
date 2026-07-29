@@ -20,6 +20,22 @@ import type { SetuEvent, SyncMessage } from '@setu/shared';
 import type { EventStore } from './store.js';
 
 const nowSeconds = (): number => Math.floor(Date.now() / 1000);
+const MAX_WS_PAYLOAD_BYTES = 512 * 1024;
+const MAX_IDS_PER_MESSAGE = 5000;
+const MAX_EVENTS_PER_MESSAGE = 500;
+const ID_RE = /^[A-Za-z0-9_-]{22}$/;
+
+function originAllowed(req: IncomingMessage): boolean {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  const configured = process.env.WS_ALLOWED_ORIGINS?.split(',').map((value) => value.trim()).filter(Boolean);
+  if (configured?.length) return configured.includes(origin);
+  try {
+    return new URL(origin).host === req.headers.host;
+  } catch {
+    return false;
+  }
+}
 
 interface Peer {
   ws: WebSocket;
@@ -37,7 +53,7 @@ export interface SyncHub {
 }
 
 export function attachSync(server: Server, store: EventStore): SyncHub {
-  const wss = new WebSocketServer({ noServer: true });
+  const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_PAYLOAD_BYTES, perMessageDeflate: false });
   const peers = new Set<Peer>();
 
   server.on('upgrade', (req: IncomingMessage, socket: Duplex, head: Buffer) => {
@@ -49,6 +65,11 @@ export function attachSync(server: Server, store: EventStore): SyncHub {
       return;
     }
     if (url.pathname !== '/ws') {
+      socket.destroy();
+      return;
+    }
+    if (!originAllowed(req)) {
+      socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
       socket.destroy();
       return;
     }
@@ -87,13 +108,18 @@ export function attachSync(server: Server, store: EventStore): SyncHub {
     const now = nowSeconds();
 
     if (msg.type === 'have' && Array.isArray(msg.ids)) {
-      const { missing, want } = store.reconcile(msg.ids, now);
+      const ids = validIds(msg.ids);
+      if (!ids) return closePolicy(peer.ws);
+      const { missing, want } = store.reconcile(ids, now);
       if (missing.length) sendEvents(peer.ws, missing);
       if (want.length) send(peer.ws, { type: 'want', ids: want });
     } else if (msg.type === 'want' && Array.isArray(msg.ids)) {
-      const events = store.getByIds(msg.ids, now);
+      const ids = validIds(msg.ids);
+      if (!ids) return closePolicy(peer.ws);
+      const events = store.getByIds(ids, now);
       if (events.length) sendEvents(peer.ws, events);
     } else if (msg.type === 'events' && Array.isArray(msg.events)) {
+      if (msg.events.length > MAX_EVENTS_PER_MESSAGE) return closePolicy(peer.ws);
       const added = store.ingest(msg.events, now);
       if (added.length) broadcast(added, peer);
     }
@@ -121,10 +147,26 @@ export function attachSync(server: Server, store: EventStore): SyncHub {
   };
 
   function sendEvents(ws: WebSocket, events: SetuEvent[]): void {
-    send(ws, { type: 'events', events });
+    for (let i = 0; i < events.length; i += MAX_EVENTS_PER_MESSAGE) {
+      send(ws, { type: 'events', events: events.slice(i, i + MAX_EVENTS_PER_MESSAGE) });
+    }
   }
 
   function send(ws: WebSocket, msg: SyncMessage): void {
     if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+  }
+
+  function validIds(value: unknown[]): string[] | null {
+    if (value.length > MAX_IDS_PER_MESSAGE) return null;
+    const ids: string[] = [];
+    for (const id of value) {
+      if (typeof id !== 'string' || !ID_RE.test(id)) return null;
+      ids.push(id);
+    }
+    return ids;
+  }
+
+  function closePolicy(ws: WebSocket): void {
+    ws.close(1008, 'message exceeds protocol limits');
   }
 }

@@ -18,6 +18,9 @@ primary_region = "sin" # Singapore — closest common Fly region to Bangladesh; 
 
 [env]
   PORT = "8787"
+  DATA_DIR = "/data"
+  NODE_ENV = "production"
+  TRUST_PROXY = "1"
 
 [http_service]
   internal_port = 8787
@@ -39,10 +42,7 @@ primary_region = "sin" # Singapore — closest common Fly region to Bangladesh; 
   method = "GET"
   path = "/healthz"
 
-# A persistent volume is only needed once the relay starts writing SQLite
-# data (later phase). To enable it:
-#   fly volumes create setu_data --region sin --size 1
-# then uncomment this (and add DATA_DIR = "/data" into the [env] block above):
-# [mounts]
-#   source = "setu_data"
-#   destination = "/data"
+# Create before first deploy: fly volumes create setu_data --region sin --size 1
+[mounts]
+  source = "setu_data"
+  destination = "/data"

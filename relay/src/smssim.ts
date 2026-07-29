@@ -11,8 +11,7 @@
  * it's embedded here so the simulator's POSTs still authenticate. JSON.stringify
  * yields a safe JS string literal (or `undefined` -> no header sent).
  */
-export function smsSimPage(inboundKey?: string): string {
-  const keyLiteral = JSON.stringify(inboundKey ?? '');
+export function smsSimPage(): string {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -59,6 +58,7 @@ and the relay's reply appears below.</p>
   <div class="log" id="log"></div>
   <div class="row">
     <input id="from" class="num" value="+8801711000001" aria-label="Sender number">
+    <input id="key" type="password" placeholder="Simulator key" aria-label="Simulator key">
   </div>
   <div class="row">
     <input id="text" placeholder="SAFE Rahim Mirpur" aria-label="Message text" autocomplete="off">
@@ -69,7 +69,6 @@ and the relay's reply appears below.</p>
 <p class="foot">Zero-JS read-only board: <a href="/lite">/lite</a> &nbsp;·&nbsp; Local node QR: <a href="/node-qr">/node-qr</a></p>
 
 <script>
-var INBOUND_KEY = ${keyLiteral};
 var EXAMPLES = [
   'SAFE Rahim Mirpur',
   'HELP WATER Karim Feni - stuck on roof',
@@ -81,6 +80,7 @@ var EXAMPLES = [
 var log = document.getElementById('log');
 var textEl = document.getElementById('text');
 var fromEl = document.getElementById('from');
+var keyEl = document.getElementById('key');
 var sendEl = document.getElementById('send');
 var fromLabel = document.getElementById('fromLabel');
 
@@ -108,7 +108,7 @@ function send(){
   textEl.value = '';
   sendEl.disabled = true;
   var headers = { 'content-type': 'application/json' };
-  if (INBOUND_KEY) headers['x-setu-key'] = INBOUND_KEY;
+  if (keyEl.value) headers['x-setu-sim-key'] = keyEl.value;
   fetch('/api/sms/inbound', {
     method: 'POST',
     headers: headers,

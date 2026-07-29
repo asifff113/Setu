@@ -5,6 +5,7 @@ import {
   decodeBundle,
   encodeBundle,
   filterForBundle,
+  MAX_COMPRESSED_BUNDLE_BYTES,
   type BundleFilter,
 } from '../lib/bundle';
 import { timeAgo, toBnDigits } from '../lib/time';
@@ -119,6 +120,7 @@ export function SyncScreen() {
     if (importRef.current) importRef.current.value = ''; // allow re-picking same file
     if (!file) return;
     try {
+      if (file.size > MAX_COMPRESSED_BUNDLE_BYTES) throw new Error('file too large');
       const bytes = new Uint8Array(await file.arrayBuffer());
       const imported = await decodeBundle(bytes);
       const res = await ingestEvents(imported);

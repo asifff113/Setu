@@ -23,10 +23,13 @@ export type SetuEvent = {
   pn?: string; // person events: the missing/found person's name <= 48 chars
   pst?: SetuPersonStatus; // person events only
   src?: SetuSource; // sms = gateway-attested, not author-signed
+  x?: string; // opaque transport nonce, used by gateways to avoid id collisions
   sig: string; // base64url ed25519 signature over canonical body bytes
 };
 
 export const DEFAULT_TTL_SECONDS = 259200; // 72h
+export const MAX_TTL_SECONDS = 604800; // 7 days
+export const MAX_FUTURE_SKEW_SECONDS = 900; // 15 minutes
 
 /** Body of a SetuEvent with the signature stripped, used for signing/hashing. */
 export type SetuEventBody = Omit<SetuEvent, 'sig'>;

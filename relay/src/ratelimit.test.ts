@@ -2,6 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { createRateLimiter } from './ratelimit.js';
 
 describe('createRateLimiter', () => {
+  it('rejects invalid configuration instead of failing open', () => {
+    expect(() => createRateLimiter(Number.NaN, 1000)).toThrow();
+    expect(() => createRateLimiter(1, 0)).toThrow();
+  });
   it('allows up to the limit per window, then blocks', () => {
     const rl = createRateLimiter(3, 60_000);
     expect(rl.allow('a')).toBe(true);

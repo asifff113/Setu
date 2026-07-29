@@ -19,6 +19,8 @@ export interface RateLimiter {
 
 /** Allow at most `limit` hits per `windowMs` per key. */
 export function createRateLimiter(limit: number, windowMs: number): RateLimiter {
+  if (!Number.isSafeInteger(limit) || limit < 1) throw new Error('rate limit must be a positive integer');
+  if (!Number.isSafeInteger(windowMs) || windowMs < 1) throw new Error('rate window must be a positive integer');
   const hits = new Map<string, number[]>();
 
   return {
@@ -37,6 +39,7 @@ export function createRateLimiter(limit: number, windowMs: number): RateLimiter 
         for (const [k, times] of hits) {
           if (times.length === 0 || times[times.length - 1]! <= cutoff) hits.delete(k);
         }
+        while (hits.size > 5000) hits.delete(hits.keys().next().value!);
       }
       return true;
     },

@@ -1,4 +1,4 @@
-import { isExpired, isValidEventShape, verifyEvent, type SetuEvent } from '@setu/shared';
+import { isExpired, isFutureDated, isValidEventShape, verifyEvent, type SetuEvent } from '@setu/shared';
 import { db } from './schema';
 
 /** Soft cap; older-expired-first pruning keeps IndexedDB bounded on cheap phones. */
@@ -22,10 +22,11 @@ export interface IngestResult {
 export async function ingestEvents(events: SetuEvent[]): Promise<IngestResult> {
   const result: IngestResult = { added: 0, known: 0, rejected: 0 };
   const valid: SetuEvent[] = [];
+  const now = Math.floor(Date.now() / 1000);
   for (const event of events) {
     // Shape/size gate runs first (cheap, pre-crypto): drops malformed or
     // oversized events before they cost a signature verification.
-    if (isValidEventShape(event) && verifyEvent(event)) valid.push(event);
+    if (isValidEventShape(event) && !isExpired(event, now) && !isFutureDated(event, now) && verifyEvent(event)) valid.push(event);
     else result.rejected++;
   }
   if (valid.length === 0) return result;

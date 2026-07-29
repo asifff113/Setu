@@ -50,7 +50,11 @@ export function gatewayFromEnv(env: Env): GatewayConfig {
 export interface InboundSms {
   text: string;
   from: string;
+  messageId?: string;
 }
+
+const MAX_SMS_TEXT_LENGTH = 1000;
+const PHONE_RE = /^\+?[0-9]{3,20}$/;
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;
@@ -74,17 +78,17 @@ export function extractInbound(body: unknown): InboundSms | null {
 
   const payload = asRecord(b.payload);
   if (payload && asStr(payload.message) !== undefined) {
-    return { text: asStr(payload.message)!, from: asStr(payload.phoneNumber) ?? '' };
+    return { text: asStr(payload.message)!, from: asStr(payload.phoneNumber) ?? '', messageId: asStr(payload.id) };
   }
 
   const data = asRecord(b.data);
   if (data && asStr(data.contents) !== undefined) {
-    return { text: asStr(data.contents)!, from: asStr(data.from) ?? '' };
+    return { text: asStr(data.contents)!, from: asStr(data.from) ?? '', messageId: asStr(data.id) ?? asStr(b.id) };
   }
 
   const text = asStr(b.message) ?? asStr(b.text) ?? asStr(b.contents);
   if (text !== undefined) {
-    return { text, from: asStr(b.from) ?? asStr(b.phoneNumber) ?? '' };
+    return { text, from: asStr(b.from) ?? asStr(b.phoneNumber) ?? '', messageId: asStr(b.id) };
   }
   return null;
 }
@@ -94,12 +98,13 @@ export function buildSmsEvent(
   cmd: ReturnType<typeof parseSms>,
   identity: RelayIdentity,
   now: number,
+  nonce?: string,
 ): SetuEvent | null {
   const kp = { secretKey: identity.secretKey, publicKey: identity.publicKey };
   switch (cmd.kind) {
     case 'checkin':
       return createEvent(
-        { t: 'checkin', ts: now, gh: cmd.area?.gh ?? '', n: cmd.name.slice(0, 32), st: 'safe', src: 'sms' },
+        { t: 'checkin', ts: now, gh: cmd.area?.gh ?? '', n: cmd.name.slice(0, 32), st: 'safe', x: nonce, src: 'sms' },
         kp,
       );
     case 'help':
@@ -112,13 +117,14 @@ export function buildSmsEvent(
           st: 'need',
           cat: cmd.cat,
           msg: cmd.msg?.slice(0, 280),
+          x: nonce,
           src: 'sms',
         },
         kp,
       );
     case 'person':
       return createEvent(
-        { t: 'person', ts: now, gh: cmd.area?.gh ?? '', pn: cmd.name.slice(0, 48), pst: cmd.pst, src: 'sms' },
+        { t: 'person', ts: now, gh: cmd.area?.gh ?? '', pn: cmd.name.slice(0, 48), pst: cmd.pst, x: nonce, src: 'sms' },
         kp,
       );
     default:
@@ -164,12 +170,19 @@ async function sendReply(to: string, text: string, deps: SmsDeps): Promise<boole
     return false;
   }
   try {
+    if (!PHONE_RE.test(to)) {
+      log?.('reply not sent: invalid recipient');
+      return false;
+    }
+    const signal = AbortSignal.timeout(10_000);
     let res: Response;
     if (gateway.kind === 'httpsms') {
       res = await fetch(gateway.url, {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...(gateway.key ? { 'x-api-key': gateway.key } : {}) },
         body: JSON.stringify({ content: text, from: gateway.from ?? '', to }),
+        signal,
+        redirect: 'error',
       });
     } else {
       // android-sms-gateway (capcom6): Basic-auth, { message, phoneNumbers[] }.
@@ -181,6 +194,8 @@ async function sendReply(to: string, text: string, deps: SmsDeps): Promise<boole
         method: 'POST',
         headers,
         body: JSON.stringify({ message: text, phoneNumbers: [to] }),
+        signal,
+        redirect: 'error',
       });
     }
     if (!res.ok) log?.(`gateway send failed (${res.status}) -> ${to}`);
@@ -201,6 +216,12 @@ export async function handleInboundSms(body: unknown, deps: SmsDeps): Promise<Sm
   if (!inbound) {
     return { status: 400, json: { ok: false, error: 'unrecognized SMS webhook payload' } };
   }
+  if (inbound.text.length < 1 || inbound.text.length > MAX_SMS_TEXT_LENGTH) {
+    return { status: 400, json: { ok: false, error: 'invalid SMS length' } };
+  }
+  if (inbound.from && !PHONE_RE.test(inbound.from)) {
+    return { status: 400, json: { ok: false, error: 'invalid sender number' } };
+  }
 
   const now = (deps.now ?? (() => Math.floor(Date.now() / 1000)))();
   const cmd = parseSms(inbound.text);
@@ -213,7 +234,8 @@ export async function handleInboundSms(body: unknown, deps: SmsDeps): Promise<Sm
   } else if (cmd.kind === 'unknown') {
     reply = usageReply();
   } else {
-    const event = buildSmsEvent(cmd, deps.identity, now);
+    const nonce = (inbound.messageId ?? `${inbound.from}:${now}`).slice(0, 80);
+    const event = buildSmsEvent(cmd, deps.identity, now, nonce);
     if (event) stored = deps.publish([event]).length;
     reply = formatConfirmReply(cmd) ?? usageReply();
   }

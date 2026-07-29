@@ -29,6 +29,7 @@ export interface RelayWSHooks {
 }
 
 const MAX_BACKOFF_MS = 30_000;
+const MAX_EVENTS_PER_MESSAGE = 500;
 
 export class RelayWS {
   private readonly url: string;
@@ -37,6 +38,7 @@ export class RelayWS {
   private closed = false;
   private retry = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly pending = new Map<string, SetuEvent>();
 
   // Explicit field assignment (not constructor parameter properties) because
   // the app compiles with `erasableSyntaxOnly`.
@@ -68,11 +70,10 @@ export class RelayWS {
     this.hooks.onStatus('offline');
   }
 
-  /** Push newly-created local events to the relay (no-op if not connected). */
+  /** Queue newly-created events and flush them when connected. */
   push(events: SetuEvent[]): void {
-    if (events.length && this.ws?.readyState === WebSocket.OPEN) {
-      this.send({ type: 'events', events });
-    }
+    for (const event of events) this.pending.set(event.id, event);
+    this.flushPending();
   }
 
   /**
@@ -104,6 +105,7 @@ export class RelayWS {
     ws.onopen = () => {
       this.retry = 0;
       this.hooks.onStatus('connected');
+      this.flushPending();
       void this.sendHave();
     };
     ws.onmessage = (ev: MessageEvent) => {
@@ -155,6 +157,15 @@ export class RelayWS {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(msg));
     }
+  }
+
+  private flushPending(): void {
+    if (this.ws?.readyState !== WebSocket.OPEN || this.pending.size === 0) return;
+    const events = [...this.pending.values()];
+    for (let i = 0; i < events.length; i += MAX_EVENTS_PER_MESSAGE) {
+      this.send({ type: 'events', events: events.slice(i, i + MAX_EVENTS_PER_MESSAGE) });
+    }
+    this.pending.clear();
   }
 
   private scheduleReconnect(): void {

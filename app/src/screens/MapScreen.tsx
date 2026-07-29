@@ -73,6 +73,14 @@ export function MapScreen() {
     }
   }, [online]);
 
+  useEffect(() => {
+    if (!online || tilesFailed) return;
+    const timer = window.setTimeout(() => {
+      if (tileStats.current.loaded === 0) setTilesFailed(true);
+    }, 10_000);
+    return () => window.clearTimeout(timer);
+  }, [online, tilesFailed]);
+
   const tileHandlers = useMemo(
     () => ({
       tileload: () => {

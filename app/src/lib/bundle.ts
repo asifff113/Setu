@@ -16,9 +16,12 @@ import { Decoder, Encoder } from 'cbor-x';
 // a bundle written on one device decodes on any other.
 const encoder = new Encoder({ useRecords: false, variableMapSize: true });
 const decoder = new Decoder({ useRecords: false });
+export const MAX_COMPRESSED_BUNDLE_BYTES = 2 * 1024 * 1024;
+export const MAX_DECOMPRESSED_BUNDLE_BYTES = 8 * 1024 * 1024;
+export const MAX_BUNDLE_EVENTS = 5000;
 
 /** Drain a ReadableStream of bytes into one Uint8Array. */
-async function drain(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
+async function drain(stream: ReadableStream<Uint8Array>, maxBytes: number): Promise<Uint8Array> {
   const reader = stream.getReader();
   const parts: Uint8Array[] = [];
   let total = 0;
@@ -28,6 +31,10 @@ async function drain(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
     if (value) {
       parts.push(value);
       total += value.length;
+      if (total > maxBytes) {
+        await reader.cancel('bundle exceeds size limit');
+        throw new Error('bundle exceeds size limit');
+      }
     }
   }
   const out = new Uint8Array(total);
@@ -42,19 +49,21 @@ async function drain(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
 async function pipeThrough(
   bytes: Uint8Array,
   transform: CompressionStream | DecompressionStream,
+  maxBytes: number,
 ): Promise<Uint8Array> {
   const writer = transform.writable.getWriter();
   // Cast at the boundary: our buffers are always ArrayBuffer-backed, but TS 5.7
   // widens Uint8Array to ArrayBufferLike (which BufferSource excludes).
   void writer.write(bytes as BufferSource);
   void writer.close();
-  return drain(transform.readable as ReadableStream<Uint8Array>);
+  return drain(transform.readable as ReadableStream<Uint8Array>, maxBytes);
 }
 
 /** gzip → CBOR → events. Returns the compressed bundle ready to beam or save. */
 export async function encodeBundle(events: SetuEvent[]): Promise<Uint8Array> {
+  if (events.length > MAX_BUNDLE_EVENTS) throw new Error('too many bundle events');
   const cbor = encoder.encode(events) as Uint8Array;
-  return pipeThrough(cbor, new CompressionStream('gzip'));
+  return pipeThrough(cbor, new CompressionStream('gzip'), MAX_COMPRESSED_BUNDLE_BYTES);
 }
 
 /**
@@ -63,9 +72,13 @@ export async function encodeBundle(events: SetuEvent[]): Promise<Uint8Array> {
  * bundles rather than throwing.
  */
 export async function decodeBundle(bytes: Uint8Array): Promise<SetuEvent[]> {
-  const cbor = await pipeThrough(bytes, new DecompressionStream('gzip'));
+  if (bytes.length < 1 || bytes.length > MAX_COMPRESSED_BUNDLE_BYTES) {
+    throw new Error('compressed bundle exceeds size limit');
+  }
+  const cbor = await pipeThrough(bytes, new DecompressionStream('gzip'), MAX_DECOMPRESSED_BUNDLE_BYTES);
   const decoded: unknown = decoder.decode(cbor);
-  return Array.isArray(decoded) ? (decoded as SetuEvent[]) : [];
+  if (!Array.isArray(decoded) || decoded.length > MAX_BUNDLE_EVENTS) return [];
+  return decoded as SetuEvent[];
 }
 
 /** Which slice of the local log to put in a bundle. */

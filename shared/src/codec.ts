@@ -20,7 +20,12 @@ import {
   verifyDetached,
   type Keypair,
 } from './crypto.js';
-import { DEFAULT_TTL_SECONDS, type SetuEvent } from './types.js';
+import {
+  DEFAULT_TTL_SECONDS,
+  MAX_FUTURE_SKEW_SECONDS,
+  MAX_TTL_SECONDS,
+  type SetuEvent,
+} from './types.js';
 
 // records:false => no cbor-x "structure" tags; variableMapSize keeps small
 // maps compact. Insertion order is preserved for string keys, so sorting keys
@@ -104,8 +109,9 @@ export function verifyEvent(event: SetuEvent): boolean {
   try {
     if (event.id !== deriveId(event)) return false;
     const author = fromBase64url(event.au);
-    if (author.length !== 32) return false;
+    if (author.length !== 32 || toBase64url(author) !== event.au) return false;
     const sig = fromBase64url(event.sig);
+    if (sig.length !== 64 || toBase64url(sig) !== event.sig) return false;
     return verifyDetached(sig, signedBytes(event), author);
   } catch {
     return false;
@@ -114,7 +120,11 @@ export function verifyEvent(event: SetuEvent): boolean {
 
 /** True when the event's lifetime has elapsed relative to `nowSeconds`. */
 export function isExpired(event: SetuEvent, nowSeconds: number): boolean {
-  return event.ts + event.ttl < nowSeconds;
+  return event.ts < nowSeconds - event.ttl;
+}
+
+export function isFutureDated(event: SetuEvent, nowSeconds: number): boolean {
+  return event.ts > nowSeconds + MAX_FUTURE_SKEW_SECONDS;
 }
 
 /**
@@ -133,6 +143,14 @@ const EVENT_TYPES: ReadonlySet<string> = new Set([
   'bulletin',
   'person',
 ]);
+const STATUSES: ReadonlySet<string> = new Set(['safe', 'need']);
+const CATEGORIES: ReadonlySet<string> = new Set([
+  'med', 'rescue', 'food', 'water', 'shelter', 'other',
+]);
+const PERSON_STATUSES: ReadonlySet<string> = new Set(['missing', 'found', 'seen']);
+const SOURCES: ReadonlySet<string> = new Set(['app', 'sms']);
+const B64URL_RE = /^[A-Za-z0-9_-]+$/;
+const GEOHASH_RE = /^[0123456789bcdefghjkmnpqrstuvwxyz]{0,12}$/;
 
 /** UTF-8 byte length without allocating a Buffer (runs in browser + node). */
 function utf8Length(text: string): number {
@@ -163,29 +181,35 @@ export function isValidEventShape(event: SetuEvent): boolean {
   if (!event || typeof event !== 'object') return false;
   if (event.v !== 1) return false;
   if (typeof event.t !== 'string' || !EVENT_TYPES.has(event.t)) return false;
-  if (typeof event.id !== 'string' || typeof event.sig !== 'string') return false;
-  if (typeof event.au !== 'string' || typeof event.gh !== 'string') return false;
-  if (!Number.isFinite(event.ts) || !Number.isFinite(event.ttl)) return false;
-  if (event.ts < 0 || event.ttl < 0) return false;
-  // Optional string fields: strings within generous multiples of the model caps
-  // (n≤32, pn≤48, msg≤280 chars). Doubled so no legitimate event is rejected;
-  // the byte ceiling below is the real backstop against oversized payloads.
-  if (event.n !== undefined && (typeof event.n !== 'string' || event.n.length > 64)) return false;
-  if (event.pn !== undefined && (typeof event.pn !== 'string' || event.pn.length > 96)) return false;
-  if (event.msg !== undefined && (typeof event.msg !== 'string' || event.msg.length > 560)) return false;
-  for (const key of ['st', 'cat', 'pst', 'src'] as const) {
-    if (event[key] !== undefined && typeof event[key] !== 'string') return false;
-  }
+  if (typeof event.id !== 'string' || event.id.length !== 22 || !B64URL_RE.test(event.id)) return false;
+  if (typeof event.sig !== 'string' || event.sig.length !== 86 || !B64URL_RE.test(event.sig)) return false;
+  if (typeof event.au !== 'string' || event.au.length !== 43 || !B64URL_RE.test(event.au)) return false;
+  if (typeof event.gh !== 'string' || !GEOHASH_RE.test(event.gh)) return false;
+  if (!Number.isSafeInteger(event.ts) || !Number.isSafeInteger(event.ttl)) return false;
+  if (event.ts < 0 || event.ttl < 1 || event.ttl > MAX_TTL_SECONDS) return false;
+  if (event.n !== undefined && (typeof event.n !== 'string' || event.n.length < 1 || event.n.length > 32)) return false;
+  if (event.pn !== undefined && (typeof event.pn !== 'string' || event.pn.length < 1 || event.pn.length > 48)) return false;
+  if (event.msg !== undefined && (typeof event.msg !== 'string' || event.msg.length > 280)) return false;
+  if (event.x !== undefined && (typeof event.x !== 'string' || event.x.length < 1 || event.x.length > 80)) return false;
+  if (event.st !== undefined && !STATUSES.has(event.st)) return false;
+  if (event.cat !== undefined && !CATEGORIES.has(event.cat)) return false;
+  if (event.pst !== undefined && !PERSON_STATUSES.has(event.pst)) return false;
+  if (event.src !== undefined && !SOURCES.has(event.src)) return false;
   if (event.loc !== undefined) {
     const loc: unknown = event.loc;
     if (
       !Array.isArray(loc) ||
       loc.length !== 2 ||
-      !loc.every((n) => typeof n === 'number' && Number.isFinite(n))
+      !loc.every((n) => typeof n === 'number' && Number.isFinite(n)) ||
+      loc[0]! < -90 || loc[0]! > 90 || loc[1]! < -180 || loc[1]! > 180
     ) {
       return false;
     }
   }
+  if (event.t === 'checkin' && (event.st !== 'safe' || event.pn !== undefined || event.pst !== undefined || event.cat !== undefined)) return false;
+  if (event.t === 'help' && (event.st !== 'need' || event.pn !== undefined || event.pst !== undefined)) return false;
+  if (event.t === 'bulletin' && (event.msg === undefined || event.st !== undefined || event.cat !== undefined || event.pn !== undefined || event.pst !== undefined)) return false;
+  if (event.t === 'person' && (event.pn === undefined || event.pst === undefined || event.st !== undefined || event.cat !== undefined)) return false;
   return utf8Length(JSON.stringify(event)) <= MAX_EVENT_BYTES;
 }
 
