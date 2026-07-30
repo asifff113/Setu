@@ -1,4 +1,7 @@
+import { DISTRICTS, findAreaByCode } from '@setu/shared';
+import { useMemo, useState } from 'react';
 import { useI18n, type DictKey } from '../i18n';
+import { useAppStore } from '../store/appStore';
 
 const LADDER: { titleKey: DictKey; descKey: DictKey }[] = [
   { titleKey: 'infoLadder1Title', descKey: 'infoLadder1Desc' },
@@ -26,7 +29,56 @@ const TRUST_ROWS: { icon: string; tint: string; descKey: DictKey }[] = [
 const REPO_URL = 'https://github.com/asifff113/Setu';
 
 export function InfoScreen() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const settings = useAppStore((state) => state.settings);
+  const updateSettings = useAppStore((state) => state.updateSettings);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [name, setName] = useState(settings?.name ?? '');
+  const [areaCode, setAreaCode] = useState(settings?.areaCode ?? '');
+  const [locality, setLocality] = useState(settings?.locality ?? '');
+  const [saving, setSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<'saved' | 'error' | null>(null);
+
+  const currentArea = useMemo(
+    () => (settings?.areaCode ? findAreaByCode(settings.areaCode) : undefined),
+    [settings?.areaCode],
+  );
+  const districtOptions = useMemo(
+    () =>
+      currentArea && !DISTRICTS.some((area) => area.code === currentArea.code)
+        ? [currentArea, ...DISTRICTS]
+        : DISTRICTS,
+    [currentArea],
+  );
+
+  function openProfileEditor() {
+    setName(settings?.name ?? '');
+    setAreaCode(settings?.areaCode ?? '');
+    setLocality(settings?.locality ?? '');
+    setProfileMessage(null);
+    setEditingProfile(true);
+  }
+
+  async function saveProfile() {
+    if (saving) return;
+    setSaving(true);
+    setProfileMessage(null);
+    try {
+      const area = areaCode ? findAreaByCode(areaCode) : undefined;
+      await updateSettings({
+        name: name.trim().slice(0, 32),
+        areaCode: area?.code ?? null,
+        gh: area?.gh ?? '',
+        locality: locality.trim().slice(0, 64),
+      });
+      setProfileMessage('saved');
+      setEditingProfile(false);
+    } catch {
+      setProfileMessage('error');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pt-6 pb-8">
@@ -34,6 +86,116 @@ export function InfoScreen() {
         <h1 className="text-2xl font-bold text-ink">{t('appName')}</h1>
         <p className="mt-1 text-sm text-muted">{t('appTagline')}</p>
       </div>
+
+      <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              {t('infoProfileTitle')}
+            </p>
+            {!editingProfile && (
+              <div className="mt-2">
+                <p className="font-semibold text-ink">
+                  {settings?.name.trim() || t('infoProfileNoName')}
+                </p>
+                <p className="mt-0.5 text-sm text-muted">
+                  {currentArea
+                    ? `${lang === 'bn' ? currentArea.bn : currentArea.name}${
+                        settings?.locality ? ` · ${settings.locality}` : ''
+                      }`
+                    : t('infoProfileNoArea')}
+                </p>
+              </div>
+            )}
+          </div>
+          {!editingProfile && (
+            <button
+              type="button"
+              onClick={openProfileEditor}
+              className="shrink-0 rounded-xl border border-line bg-surface-2 px-3 py-2 text-sm font-semibold text-accent active:opacity-80"
+            >
+              {t('infoProfileEdit')}
+            </button>
+          )}
+        </div>
+
+        {editingProfile && (
+          <div className="mt-4 flex flex-col gap-4">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-muted" htmlFor="profile-name">
+                {t('onboardNameLabel')}
+              </label>
+              <input
+                id="profile-name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                maxLength={32}
+                placeholder={t('onboardNamePlaceholder')}
+                className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-muted" htmlFor="profile-district">
+                {t('infoProfileDistrict')}
+              </label>
+              <select
+                id="profile-district"
+                value={areaCode}
+                onChange={(event) => setAreaCode(event.target.value)}
+                className="min-h-12 w-full rounded-xl border border-line bg-surface px-4 py-3 text-base text-ink focus:outline-none focus:ring-2 focus:ring-accent"
+              >
+                <option value="">{t('infoProfileChooseDistrict')}</option>
+                {districtOptions.map((area) => (
+                  <option key={area.code} value={area.code}>
+                    {lang === 'bn' ? `${area.bn} — ${area.name}` : `${area.name} — ${area.bn}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-muted" htmlFor="profile-locality">
+                {t('infoProfileLocality')}
+              </label>
+              <input
+                id="profile-locality"
+                value={locality}
+                onChange={(event) => setLocality(event.target.value)}
+                maxLength={64}
+                placeholder={t('infoProfileLocalityPlaceholder')}
+                className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <p className="mt-1.5 text-xs leading-relaxed text-muted">{t('infoProfileAreaHint')}</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => setEditingProfile(false)}
+                className="min-h-12 flex-1 rounded-xl border border-line bg-surface-2 py-3 text-sm font-semibold text-ink disabled:opacity-50"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void saveProfile()}
+                className="min-h-12 flex-1 rounded-xl bg-accent py-3 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {saving ? t('infoProfileSaving') : t('save')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {profileMessage && (
+          <p className={`mt-3 text-sm font-medium ${profileMessage === 'saved' ? 'text-safe' : 'text-need'}`}>
+            {profileMessage === 'saved' ? t('infoProfileSaved') : t('errorGeneric')}
+          </p>
+        )}
+      </section>
 
       <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">

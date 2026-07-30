@@ -18,6 +18,7 @@ export interface SettingsRow {
   name: string;
   areaCode: string | null; // Area.code from shared/areas, or null
   gh: string; // geohash prefix for the chosen area, '' if unknown
+  locality: string; // optional free-text thana/neighborhood within the selected district
   lang: Language;
   onboarded: boolean;
   updatedAt: number; // unix seconds

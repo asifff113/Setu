@@ -5,6 +5,7 @@ const DEFAULT_SETTINGS: Omit<SettingsRow, 'updatedAt'> = {
   name: '',
   areaCode: null,
   gh: '',
+  locality: '',
   lang: 'bn', // Bangla-first
   onboarded: false,
 };
@@ -12,7 +13,10 @@ const DEFAULT_SETTINGS: Omit<SettingsRow, 'updatedAt'> = {
 /** Read settings, returning sane defaults when nothing is stored yet. */
 export async function readSettings(): Promise<SettingsRow> {
   const existing = await db.meta.get('settings');
-  if (existing && existing.key === 'settings') return existing;
+  if (existing && existing.key === 'settings') {
+    // Rows created before the profile editor have no `locality` field.
+    return { ...existing, locality: existing.locality ?? '' };
+  }
   return { ...DEFAULT_SETTINGS, updatedAt: 0 };
 }
 

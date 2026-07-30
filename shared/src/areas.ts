@@ -126,6 +126,9 @@ const SEEDS: AreaSeed[] = [
 
 export const AREAS: Area[] = SEEDS.map((s) => ({ ...s, gh: geohashEncode(s.lat, s.lng, 6) }));
 
+/** Bangladesh's 64 administrative districts (city/thana entries follow them in AREAS). */
+export const DISTRICTS: readonly Area[] = AREAS.slice(0, 64);
+
 const BY_CODE = new Map(AREAS.map((a) => [a.code, a]));
 
 export function findAreaByCode(code: string): Area | undefined {

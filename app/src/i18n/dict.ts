@@ -325,6 +325,20 @@ export const dict = {
   publishAnother: { bn: 'আরেকটি লিখুন', en: 'Write another' },
 
   // Info
+  infoProfileTitle: { bn: 'আমার প্রোফাইল', en: 'My profile' },
+  infoProfileEdit: { bn: 'পরিবর্তন করুন', en: 'Edit profile' },
+  infoProfileNoName: { bn: 'নাম দেওয়া হয়নি', en: 'No name set' },
+  infoProfileNoArea: { bn: 'এলাকা নির্বাচন করা হয়নি', en: 'No area selected' },
+  infoProfileDistrict: { bn: 'জেলা', en: 'District' },
+  infoProfileChooseDistrict: { bn: '৬৪টি জেলা থেকে নির্বাচন করুন', en: 'Choose from 64 districts' },
+  infoProfileLocality: { bn: 'থানা / পাড়া / মহল্লা (ঐচ্ছিক)', en: 'Thana / neighborhood (optional)' },
+  infoProfileLocalityPlaceholder: { bn: 'যেমন: সাভার, আশুলিয়া', en: 'e.g. Savar, Ashulia' },
+  infoProfileAreaHint: {
+    bn: '“আমার এলাকা” ফিল্টার জেলার ভিত্তিতে কাজ করে; স্থানীয় নামটি অতিরিক্ত পরিচিতির জন্য রাখা হয়।',
+    en: '“My area” filtering uses the selected district; the local name is saved as extra profile detail.',
+  },
+  infoProfileSaving: { bn: 'সংরক্ষণ হচ্ছে…', en: 'Saving…' },
+  infoProfileSaved: { bn: '✓ প্রোফাইল সংরক্ষণ করা হয়েছে', en: '✓ Profile saved' },
   infoWhatTitle: { bn: 'সেতু কী?', en: 'What is Setu?' },
   infoWhatBody: {
     bn: 'সেতু একটি অফলাইন-প্রথম অ্যাপ — বিপর্যয় বা ইন্টারনেট বন্ধের সময় নিরাপদ/সাহায্য দরকার হিসেবে চেক-ইন করুন, আপনার ডিভাইস যাদের চেনে তাদের একটি বোর্ড দেখুন, আর ডিজিটালি স্বাক্ষরিত বুলেটিন ও অযাচাইকৃত গুজবের মধ্যে পার্থক্য বুঝুন। কোনো অ্যাকাউন্ট নেই, কোনো কেন্দ্রীয় সার্ভার নেই — প্রতিটি ইভেন্ট আপনার ডিভাইসে তৈরি, স্বাক্ষরিত ও সংরক্ষিত থাকে, এবং যেকোনো মাধ্যমে অন্য ডিভাইসের সাথে মিলিত (sync) হয়।',
