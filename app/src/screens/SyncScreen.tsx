@@ -13,6 +13,7 @@ import { useAppStore } from '../store/appStore';
 import { useEventsStore } from '../store/eventsStore';
 import { useSyncStore, type SyncStatus } from '../store/syncStore';
 import { isPrivateWsUrl, normalizeNodeUrl } from '../sync/wsurl';
+import { CoachMark } from '../components/CoachMark';
 
 const BeamReceiver = lazy(() => import('../sync/beam/BeamReceiver').then((m) => ({ default: m.BeamReceiver })));
 const BeamSender = lazy(() => import('../sync/beam/BeamSender').then((m) => ({ default: m.BeamSender })));
@@ -143,6 +144,7 @@ export function SyncScreen() {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pt-6 pb-8">
       <h1 className="px-1 text-2xl font-bold text-ink">{t('syncTitle')}</h1>
+      <CoachMark id="connect">{t('coachConnect')}</CoachMark>
 
       <section className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
         <div className="flex items-start justify-between gap-4">

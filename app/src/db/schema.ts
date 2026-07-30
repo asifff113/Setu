@@ -21,7 +21,29 @@ export interface SettingsRow {
   locality: string; // optional free-text thana/neighborhood within the selected district
   lang: Language;
   onboarded: boolean;
+  hintsSeen: string[];
+  mutedAuthors: string[];
+  watchedAuthors: Array<{ au: string; name: string }>;
+  autoDownloadMedia: boolean;
+  responderMode: boolean;
+  theme: 'system' | 'light' | 'dark';
+  batterySaver: boolean;
+  largeText: boolean;
+  lastSeen: Record<string, number>;
   updatedAt: number; // unix seconds
+}
+
+export interface BlobCacheRow {
+  h: string;
+  blob: Blob;
+  mime: string;
+  createdAt: number;
+}
+
+export interface CircleRow {
+  au: string;
+  name: string;
+  addedAt: number;
 }
 
 /** Singleton rows in the `meta` key-value table, discriminated by `key`. */
@@ -37,6 +59,8 @@ export type MetaRow = IdentityRow | SettingsRow;
 export class SetuDB extends Dexie {
   events!: Table<SetuEvent, string>;
   meta!: Table<MetaRow, string>;
+  blobs!: Table<BlobCacheRow, string>;
+  circles!: Table<CircleRow, string>;
 
   constructor() {
     super('setu');
@@ -44,6 +68,12 @@ export class SetuDB extends Dexie {
       // Bump the version + add a migration when these indexes change.
       events: 'id, t, gh, ts, au, [t+gh], st, pst',
       meta: 'key',
+    });
+    this.version(2).stores({
+      events: 'id, t, gh, ts, au, [t+gh], st, pst',
+      meta: 'key',
+      blobs: 'h, createdAt',
+      circles: 'au, addedAt',
     });
   }
 }

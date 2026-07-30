@@ -15,6 +15,8 @@ import {
   publicKeyFromSecret,
   pubkeyToAuthor,
   type SetuEvent,
+  type SetuAttachment,
+  type SetuSeverity,
 } from '@setu/shared';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -24,6 +26,7 @@ import { useI18n } from '../i18n';
 import { ingestEvents } from '../db/events';
 import { useEventsStore } from '../store/eventsStore';
 import { useSyncStore } from '../store/syncStore';
+import { AttachmentComposer } from '../components/AttachmentComposer';
 
 function nowSeconds(): number {
   return Math.floor(Date.now() / 1000);
@@ -54,6 +57,8 @@ export function PublishScreen() {
   const [secretInput, setSecretInput] = useState('');
   const [areaCode, setAreaCode] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [severity, setSeverity] = useState<SetuSeverity>('info');
+  const [attachment, setAttachment] = useState<SetuAttachment>();
   const [busy, setBusy] = useState(false);
   const [published, setPublished] = useState<SetuEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +74,14 @@ export function PublishScreen() {
     try {
       const area = areaCode ? findAreaByCode(areaCode) : undefined;
       const event = createEvent(
-        { t: 'bulletin', ts: nowSeconds(), gh: area?.gh ?? '', msg: message.trim().slice(0, 280) },
+        {
+          t: 'bulletin',
+          ts: nowSeconds(),
+          gh: area?.gh ?? '',
+          msg: message.trim().slice(0, 280),
+          sev: severity,
+          att: attachment,
+        },
         { secretKey: derived.secretKey, publicKey: derived.publicKey },
       );
       await ingestEvents([event]);
@@ -85,6 +97,7 @@ export function PublishScreen() {
 
   function reset() {
     setMessage('');
+    setAttachment(undefined);
     setPublished(null);
   }
 
@@ -142,6 +155,26 @@ export function PublishScreen() {
               <p className="mt-1.5 text-xs text-muted">{t('publishSecretHint')}</p>
               {secretLooksInvalid && <p className="mt-1.5 text-xs text-need">{t('publishSecretInvalid')}</p>}
             </div>
+
+            <div>
+              <p className="mb-2 text-sm font-medium text-muted">{t('publishSeverity')}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(['info', 'warning', 'danger'] as SetuSeverity[]).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setSeverity(value)}
+                    className={`min-h-11 rounded-xl border text-xs font-semibold ${
+                      severity === value ? 'border-accent bg-accent text-white' : 'border-line bg-surface text-muted'
+                    }`}
+                  >
+                    {value === 'info' ? t('publishSeverityInfo') : value === 'warning' ? t('publishSeverityWarning') : t('publishSeverityDanger')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <AttachmentComposer value={attachment} onChange={setAttachment} />
 
             {derived && (
               <div className="rounded-xl border border-line bg-surface-2 px-4 py-3">

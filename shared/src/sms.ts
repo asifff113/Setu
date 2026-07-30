@@ -10,6 +10,8 @@
  *   HELP <MED|RESCUE|FOOD|WATER|SHELTER> <name> [area] [- <message>]
  *   MISSING <name> [area]
  *   FOUND <name> [area]
+ *   DONE <name>                        → resolves latest open SMS help case
+ *   OFFER <category> <name> [area] [- <message>]
  *   FIND <name>                       → query, no event; relay replies by SMS
  *   (anything else)                   → usage help reply
  *
@@ -26,6 +28,8 @@ export type SmsCommand =
   | { kind: 'checkin'; name: string; area?: Area }
   | { kind: 'help'; name: string; area?: Area; cat: SetuCategory; msg?: string }
   | { kind: 'person'; name: string; area?: Area; pst: 'missing' | 'found' }
+  | { kind: 'done'; name: string }
+  | { kind: 'offer'; name: string; area?: Area; cat: SetuCategory; msg?: string }
   | { kind: 'find'; name: string }
   | { kind: 'unknown' };
 
@@ -96,7 +100,8 @@ export function parseSms(input: string): SmsCommand {
       const { name, area } = splitNameArea(tokenize(rest));
       return name ? { kind: 'checkin', name, area } : { kind: 'unknown' };
     }
-    case 'HELP': {
+    case 'HELP':
+    case 'OFFER': {
       const { head, msg } = splitMessage(rest);
       const tokens = tokenize(head);
       // Category is optional-friendly: consume a leading category keyword if
@@ -109,7 +114,9 @@ export function parseSms(input: string): SmsCommand {
         tokens.shift();
       }
       const { name, area } = splitNameArea(tokens);
-      return name ? { kind: 'help', name, area, cat, msg } : { kind: 'unknown' };
+      return name
+        ? { kind: keyword === 'OFFER' ? 'offer' : 'help', name, area, cat, msg }
+        : { kind: 'unknown' };
     }
     case 'MISSING':
     case 'FOUND': {
@@ -120,6 +127,10 @@ export function parseSms(input: string): SmsCommand {
     case 'FIND': {
       const name = rest.trim();
       return name ? { kind: 'find', name } : { kind: 'unknown' };
+    }
+    case 'DONE': {
+      const name = rest.trim();
+      return name ? { kind: 'done', name } : { kind: 'unknown' };
     }
     default:
       return { kind: 'unknown' };
@@ -191,6 +202,10 @@ export function formatConfirmReply(cmd: SmsCommand): string | undefined {
       return `Setu: recorded ${cmd.name} SAFE${at(cmd.area)}.`;
     case 'help':
       return `Setu: HELP request logged for ${cmd.name}${at(cmd.area)} (${cmd.cat}). Hold on.`;
+    case 'offer':
+      return `Setu: OFFER logged for ${cmd.name}${at(cmd.area)} (${cmd.cat}).`;
+    case 'done':
+      return `Setu: marked ${cmd.name}'s latest help request done.`;
     case 'person':
       return `Setu: recorded ${cmd.name} ${cmd.pst.toUpperCase()}${at(cmd.area)}.`;
     default:
@@ -203,6 +218,7 @@ export function usageReply(): string {
   return (
     'Setu SMS commands: SAFE <name> <area> | ' +
     'HELP <MED/RESCUE/FOOD/WATER/SHELTER> <name> <area> - note | ' +
+    'OFFER <category> <name> <area> - note | DONE <name> | ' +
     'MISSING <name> <area> | FOUND <name> <area> | FIND <name>'
   );
 }

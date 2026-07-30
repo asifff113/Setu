@@ -17,6 +17,13 @@
  */
 import type { SetuEvent } from './types.js';
 
+export interface SetuEventView extends SetuEvent {
+  resolved: boolean;
+  responders: number;
+  replies: number;
+  retracted: boolean;
+}
+
 function normalizeName(name: string | undefined): string {
   return (name ?? '').trim().toLowerCase();
 }
@@ -59,23 +66,88 @@ function latestByKey(
   return [...byKey.values()].sort((a, b) => b.ts - a.ts);
 }
 
+/** Retractions are valid only when the tombstone signer owns the target. */
+export function validRetractionIds(events: readonly SetuEvent[]): Set<string> {
+  const byId = new Map(events.map((event) => [event.id, event]));
+  const ids = new Set<string>();
+  for (const event of events) {
+    if (event.t !== 'retract' || !event.re) continue;
+    const target = byId.get(event.re);
+    if (target && target.au === event.au) ids.add(target.id);
+  }
+  return ids;
+}
+
+export function isRetracted(events: readonly SetuEvent[], id: string): boolean {
+  return validRetractionIds(events).has(id);
+}
+
+/** Replies and acknowledgements for one parent, oldest first. */
+export function threadFor(events: readonly SetuEvent[], id: string): SetuEvent[] {
+  const retracted = validRetractionIds(events);
+  return events
+    .filter((event) =>
+      (event.t === 'reply' || event.t === 'ack') &&
+      event.re === id &&
+      !retracted.has(event.id))
+    .sort((a, b) => a.ts - b.ts || a.id.localeCompare(b.id));
+}
+
+/** Derived badges/workflow state for a top-level event. */
+export function eventView(events: readonly SetuEvent[], event: SetuEvent): SetuEventView {
+  const thread = threadFor(events, event.id);
+  const responders = new Set(
+    thread.filter((child) => child.t === 'ack' && child.ak === 'onit').map((child) => child.au),
+  ).size;
+  return {
+    ...event,
+    resolved: thread.some((child) => child.t === 'ack' && child.ak === 'done'),
+    responders,
+    replies: thread.filter((child) => child.t === 'reply').length,
+    retracted: isRetracted(events, event.id),
+  };
+}
+
 /** One card per person: their latest checkin/help event, newest first. */
-export function latestStatusEvents(events: readonly SetuEvent[]): SetuEvent[] {
+export function latestStatusEvents(events: readonly SetuEvent[]): SetuEventView[] {
+  const retracted = validRetractionIds(events);
   return latestByKey(
-    events.filter((e) => e.t === 'checkin' || e.t === 'help'),
+    events.filter((e) => (e.t === 'checkin' || e.t === 'help') && !retracted.has(e.id)),
     personKey,
-  );
+  ).map((event) => eventView(events, event));
 }
 
 /** One card per missing/found person: their latest person event, newest first. */
-export function latestPersonEvents(events: readonly SetuEvent[]): SetuEvent[] {
+export function latestPersonEvents(events: readonly SetuEvent[]): SetuEventView[] {
+  const retracted = validRetractionIds(events);
   return latestByKey(
-    events.filter((e) => e.t === 'person'),
+    events.filter((e) => e.t === 'person' && !retracted.has(e.id)),
     missingPersonKey,
-  );
+  ).map((event) => eventView(events, event));
 }
 
 /** All bulletins, newest first (ungrouped; trust is per-event). */
-export function bulletinEvents(events: readonly SetuEvent[]): SetuEvent[] {
-  return events.filter((e) => e.t === 'bulletin').sort((a, b) => b.ts - a.ts);
+export function bulletinEvents(events: readonly SetuEvent[]): SetuEventView[] {
+  const retracted = validRetractionIds(events);
+  return events
+    .filter((e) => e.t === 'bulletin' && !retracted.has(e.id))
+    .sort((a, b) => b.ts - a.ts)
+    .map((event) => eventView(events, event));
+}
+
+/** Area-channel messages, newest last for conversation rendering. */
+export function chatEvents(events: readonly SetuEvent[], gh?: string): SetuEvent[] {
+  const retracted = validRetractionIds(events);
+  return events
+    .filter((event) => event.t === 'chat' && !retracted.has(event.id) && (!gh || event.gh === gh))
+    .sort((a, b) => a.ts - b.ts || a.id.localeCompare(b.id));
+}
+
+/** Offers remain help-shaped events so all existing transports degrade safely. */
+export function offerEvents(events: readonly SetuEvent[]): SetuEventView[] {
+  const retracted = validRetractionIds(events);
+  return events
+    .filter((event) => event.t === 'help' && event.st === 'offer' && !retracted.has(event.id))
+    .sort((a, b) => b.ts - a.ts)
+    .map((event) => eventView(events, event));
 }

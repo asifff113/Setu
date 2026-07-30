@@ -84,3 +84,33 @@ describe('EventStore storage limits', () => {
     expect(live.some((e) => e.id === other.id)).toBe(true);
   });
 });
+
+describe('EventStore reference and attachment policies', () => {
+  it('rejects a forged retraction and caps replies per author/parent', () => {
+    const store = new EventStore();
+    const parent = createEvent({ t: 'help', ts: NOW, gh: 'wh0r', st: 'need' }, kp);
+    expect(store.ingest([parent], NOW)).toHaveLength(1);
+    const attacker = generateKeypair();
+    const forged = createEvent(
+      { t: 'retract', ts: NOW + 1, gh: 'wh0r', re: parent.id },
+      attacker,
+    );
+    expect(store.ingest([forged], NOW + 1)).toHaveLength(0);
+    const replies = Array.from({ length: 21 }, (_, index) =>
+      createEvent(
+        { t: 'reply', ts: NOW + 1 + index, gh: 'wh0r', re: parent.id, msg: `reply ${index}` },
+        attacker,
+      ),
+    );
+    expect(store.ingest(replies, NOW + 30)).toHaveLength(20);
+  });
+
+  it('stores and retrieves content-addressed attachment bytes', () => {
+    const store = new EventStore();
+    const bytes = Buffer.from('webp bytes');
+    expect(store.putAttachment('A'.repeat(43), bytes, 'image/webp', NOW)).toBe(true);
+    expect(store.putAttachment('A'.repeat(43), bytes, 'image/webp', NOW)).toBe(false);
+    expect(store.getAttachment('A'.repeat(43))).toEqual({ bytes, mime: 'image/webp' });
+    expect(store.attachmentCount()).toBe(1);
+  });
+});

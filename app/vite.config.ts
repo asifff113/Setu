@@ -46,6 +46,20 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
+        shortcuts: [
+          {
+            name: "I'm SAFE",
+            short_name: 'SAFE',
+            url: '/?action=safe',
+            icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }],
+          },
+          {
+            name: 'Request help',
+            short_name: 'Help',
+            url: '/?action=help',
+            icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }],
+          },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],

@@ -29,6 +29,13 @@ interface BlobRow {
   blob: string;
 }
 
+interface AttachmentRow {
+  hash: string;
+  bytes: Buffer;
+  mime: string;
+  created_at: number;
+}
+
 /** Global cap on stored rows; oldest events are evicted first once exceeded. */
 export const DEFAULT_MAX_ROWS = 50_000;
 /** Per-author cap; keeps one signing key from hoarding the whole store. */
@@ -51,6 +58,14 @@ export class EventStore {
   private stmtCountByAuthor: Database.Statement;
   private stmtEvictOldest: Database.Statement;
   private stmtEvictOldestByAuthor: Database.Statement;
+  private stmtGetAny: Database.Statement;
+  private stmtCountReplies: Database.Statement;
+  private stmtCountRecentChat: Database.Statement;
+  private stmtPutAttachment: Database.Statement;
+  private stmtGetAttachment: Database.Statement;
+  private stmtCountAttachments: Database.Statement;
+  private stmtAllAttachments: Database.Statement;
+  private stmtDeleteAttachment: Database.Statement;
   private readonly maxRows: number;
   private readonly maxPerAuthor: number;
 
@@ -70,12 +85,20 @@ export class EventStore {
         id   TEXT PRIMARY KEY,
         gh   TEXT NOT NULL,
         au   TEXT NOT NULL DEFAULT '',
+        t    TEXT NOT NULL DEFAULT '',
+        re   TEXT,
         ts   INTEGER NOT NULL,
         ttl  INTEGER NOT NULL,
         blob TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_events_ts ON events (ts);
-      CREATE INDEX IF NOT EXISTS idx_events_au ON events (au);`,
+      CREATE INDEX IF NOT EXISTS idx_events_au ON events (au);
+      CREATE TABLE IF NOT EXISTS attachments (
+        hash       TEXT PRIMARY KEY,
+        bytes      BLOB NOT NULL,
+        mime       TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      );`,
     );
     // Migration for a store.sqlite created before the `au` column existed.
     const columns = this.db.prepare('PRAGMA table_info(events)').all() as { name: string }[];
@@ -83,10 +106,17 @@ export class EventStore {
       this.db.exec("ALTER TABLE events ADD COLUMN au TEXT NOT NULL DEFAULT ''");
       this.db.exec('CREATE INDEX IF NOT EXISTS idx_events_au ON events (au)');
     }
+    if (!columns.some((c) => c.name === 't')) {
+      this.db.exec("ALTER TABLE events ADD COLUMN t TEXT NOT NULL DEFAULT ''");
+    }
+    if (!columns.some((c) => c.name === 're')) {
+      this.db.exec('ALTER TABLE events ADD COLUMN re TEXT');
+    }
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_events_re ON events (re)');
 
     this.stmtHas = this.db.prepare('SELECT 1 FROM events WHERE id = ?');
     this.stmtInsert = this.db.prepare(
-      'INSERT OR IGNORE INTO events (id, gh, au, ts, ttl, blob) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT OR IGNORE INTO events (id, gh, au, t, re, ts, ttl, blob) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     );
     this.stmtGet = this.db.prepare(
       'SELECT blob FROM events WHERE id = ? AND (ts + ttl) >= ?',
@@ -102,6 +132,24 @@ export class EventStore {
     this.stmtEvictOldestByAuthor = this.db.prepare(
       'DELETE FROM events WHERE id IN (SELECT id FROM events WHERE au = ? ORDER BY ts ASC LIMIT ?)',
     );
+    this.stmtGetAny = this.db.prepare('SELECT blob FROM events WHERE id = ?');
+    this.stmtCountReplies = this.db.prepare(
+      "SELECT COUNT(*) AS n FROM events WHERE au = ? AND re = ? AND t = 'reply'",
+    );
+    this.stmtCountRecentChat = this.db.prepare(
+      "SELECT COUNT(*) AS n FROM events WHERE au = ? AND t = 'chat' AND ts >= ?",
+    );
+    this.stmtPutAttachment = this.db.prepare(
+      'INSERT OR IGNORE INTO attachments (hash, bytes, mime, created_at) VALUES (?, ?, ?, ?)',
+    );
+    this.stmtGetAttachment = this.db.prepare(
+      'SELECT hash, bytes, mime, created_at FROM attachments WHERE hash = ?',
+    );
+    this.stmtCountAttachments = this.db.prepare('SELECT COUNT(*) AS n FROM attachments');
+    this.stmtAllAttachments = this.db.prepare(
+      'SELECT hash, bytes, mime, created_at FROM attachments',
+    );
+    this.stmtDeleteAttachment = this.db.prepare('DELETE FROM attachments WHERE hash = ?');
   }
 
   /**
@@ -120,13 +168,39 @@ export class EventStore {
         if (isExpired(ev, now) || isFutureDated(ev, now)) continue;
         if (this.stmtHas.get(ev.id)) continue; // already known
         if (!verifyEvent(ev)) continue; // untrusted / tampered
-        this.stmtInsert.run(ev.id, ev.gh, ev.au, ev.ts, ev.ttl, JSON.stringify(ev));
+        if (!this.referencePolicyAllows(ev)) continue;
+        this.stmtInsert.run(ev.id, ev.gh, ev.au, ev.t, ev.re ?? null, ev.ts, ev.ttl, JSON.stringify(ev));
         added.push(ev);
       }
       if (added.length) this.enforceLimits(added);
     });
     run(events);
     return added;
+  }
+
+  /**
+   * Enforce parent-aware invariants that the signature/shape gate cannot:
+   * only an author may retract their own event, and one author cannot flood a
+   * case with unlimited replies. Unknown parents are retained so offline
+   * tombstones/acks can arrive before their targets and apply lazily in views.
+   */
+  private referencePolicyAllows(event: SetuEvent): boolean {
+    if (event.t === 'reply' && event.re) {
+      const { n } = this.stmtCountReplies.get(event.au, event.re) as { n: number };
+      if (n >= 20) return false;
+    }
+    if (event.t === 'chat') {
+      const { n } = this.stmtCountRecentChat.get(event.au, event.ts - 3600) as { n: number };
+      if (n >= 60) return false;
+    }
+    if ((event.t === 'reply' || event.t === 'ack' || event.t === 'retract') && event.re) {
+      const row = this.stmtGetAny.get(event.re) as BlobRow | undefined;
+      if (!row) return true;
+      const parent = JSON.parse(row.blob) as SetuEvent;
+      if (event.t === 'retract') return parent.au === event.au;
+      return parent.t !== 'retract';
+    }
+    return true;
   }
 
   /**
@@ -190,12 +264,45 @@ export class EventStore {
 
   /** Delete expired events. Returns the number removed. */
   prune(now: number): number {
-    return this.stmtPrune.run(now).changes;
+    const changes = this.stmtPrune.run(now).changes;
+    this.gcAttachments(now);
+    return changes;
   }
 
   /** Total rows (live + not-yet-pruned). */
   count(): number {
     return (this.stmtCount.get() as { n: number }).n;
+  }
+
+  putAttachment(hash: string, bytes: Buffer, mime: string, now: number): boolean {
+    return this.stmtPutAttachment.run(hash, bytes, mime, now).changes > 0;
+  }
+
+  getAttachment(hash: string): { bytes: Buffer; mime: string } | undefined {
+    const row = this.stmtGetAttachment.get(hash) as AttachmentRow | undefined;
+    return row ? { bytes: row.bytes, mime: row.mime } : undefined;
+  }
+
+  attachmentCount(): number {
+    return (this.stmtCountAttachments.get() as { n: number }).n;
+  }
+
+  /**
+   * Delete orphaned media after a one-hour upload grace period. Attachments
+   * may be uploaded immediately before their referencing signed event.
+   */
+  gcAttachments(now: number): number {
+    const liveHashes = new Set(
+      this.allLive(now)
+        .map((event) => event.att?.h)
+        .filter((hash): hash is string => Boolean(hash)),
+    );
+    let removed = 0;
+    for (const row of this.stmtAllAttachments.all() as AttachmentRow[]) {
+      if (row.created_at > now - 3600 || liveHashes.has(row.hash)) continue;
+      removed += this.stmtDeleteAttachment.run(row.hash).changes;
+    }
+    return removed;
   }
 
   /** True if the store can currently be written to (used by /healthz). */

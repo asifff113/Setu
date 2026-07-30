@@ -31,6 +31,7 @@ export function OnboardingScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
 
   async function finish() {
     if (submitting) return;
@@ -61,6 +62,63 @@ export function OnboardingScreen() {
     } finally {
       setDemoLoading(false);
     }
+  }
+
+  if (step < 3) {
+    const slides = [
+      {
+        icon: '✓',
+        tone: 'bg-safe',
+        title: t('onboardSlide1Title'),
+        body: t('onboardSlide1Body'),
+      },
+      {
+        icon: '🆘',
+        tone: 'bg-need',
+        title: t('onboardSlide2Title'),
+        body: t('onboardSlide2Body'),
+      },
+      {
+        icon: '⇄',
+        tone: 'bg-accent',
+        title: t('onboardSlide3Title'),
+        body: t('onboardSlide3Body'),
+      },
+    ];
+    const slide = slides[step]!;
+    return (
+      <div className="mx-auto flex min-h-full w-full max-w-md flex-col px-6 pb-8 pt-8">
+        <div className="flex items-center justify-between">
+          <div className="flex gap-1.5" aria-label={`${step + 1} / 3`}>
+            {slides.map((_, index) => (
+              <span key={index} className={`h-2 rounded-full ${index === step ? 'w-8 bg-accent' : 'w-2 bg-line'}`} />
+            ))}
+          </div>
+          <button type="button" onClick={() => setStep(3)} className="min-h-10 px-2 text-sm font-semibold text-muted">
+            {t('onboardSkip')}
+          </button>
+        </div>
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <div className={`flex h-40 w-40 items-center justify-center rounded-[2.5rem] text-7xl font-bold text-white shadow-xl ${slide.tone}`}>
+            {slide.icon}
+          </div>
+          <h1 className="mt-8 text-3xl font-bold text-ink">{slide.title}</h1>
+          <p className="mt-3 max-w-xs text-base leading-relaxed text-muted">{slide.body}</p>
+        </div>
+        {error && <p className="mb-3 text-center text-sm text-need">{error}</p>}
+        <button
+          type="button"
+          disabled={demoLoading}
+          onClick={() => void startDemo()}
+          className="mb-3 min-h-12 w-full rounded-xl border border-accent px-4 text-sm font-semibold text-accent"
+        >
+          {demoLoading ? '…' : t('tryDemo')}
+        </button>
+        <button type="button" onClick={() => setStep((value) => value + 1)} className="min-h-14 w-full rounded-2xl bg-accent text-lg font-semibold text-white">
+          {step === 2 ? t('onboardSetProfile') : t('onboardNext')}
+        </button>
+      </div>
+    );
   }
 
   return (

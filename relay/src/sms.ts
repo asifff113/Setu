@@ -14,6 +14,7 @@ import {
   findLatestForName,
   formatConfirmReply,
   formatFindReply,
+  latestStatusEvents,
   parseSms,
   usageReply,
   type SetuEvent,
@@ -115,6 +116,21 @@ export function buildSmsEvent(
           gh: cmd.area?.gh ?? '',
           n: cmd.name.slice(0, 32),
           st: 'need',
+          cat: cmd.cat,
+          msg: cmd.msg?.slice(0, 280),
+          x: nonce,
+          src: 'sms',
+        },
+        kp,
+      );
+    case 'offer':
+      return createEvent(
+        {
+          t: 'help',
+          ts: now,
+          gh: cmd.area?.gh ?? '',
+          n: cmd.name.slice(0, 32),
+          st: 'offer',
           cat: cmd.cat,
           msg: cmd.msg?.slice(0, 280),
           x: nonce,
@@ -231,6 +247,33 @@ export async function handleInboundSms(body: unknown, deps: SmsDeps): Promise<Sm
 
   if (cmd.kind === 'find') {
     reply = formatFindReply(findLatestForName(deps.store.allLive(now), cmd.name), cmd.name, now);
+  } else if (cmd.kind === 'done') {
+    const normalized = cmd.name.trim().toLowerCase();
+    const parent = latestStatusEvents(deps.store.allLive(now))
+      .find((event) =>
+        event.t === 'help' &&
+        event.st === 'need' &&
+        !event.resolved &&
+        (event.n ?? '').trim().toLowerCase() === normalized);
+    if (parent) {
+      const event = createEvent(
+        {
+          t: 'ack',
+          ts: now,
+          gh: parent.gh,
+          n: cmd.name.slice(0, 32),
+          re: parent.id,
+          ak: 'done',
+          x: (inbound.messageId ?? `${inbound.from}:${now}`).slice(0, 80),
+          src: 'sms',
+        },
+        { secretKey: deps.identity.secretKey, publicKey: deps.identity.publicKey },
+      );
+      stored = deps.publish([event]).length;
+      reply = formatConfirmReply(cmd)!;
+    } else {
+      reply = `Setu: no open help request found for ${cmd.name}.`;
+    }
   } else if (cmd.kind === 'unknown') {
     reply = usageReply();
   } else {

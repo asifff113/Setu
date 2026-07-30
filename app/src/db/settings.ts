@@ -8,6 +8,15 @@ const DEFAULT_SETTINGS: Omit<SettingsRow, 'updatedAt'> = {
   locality: '',
   lang: 'bn', // Bangla-first
   onboarded: false,
+  hintsSeen: [],
+  mutedAuthors: [],
+  watchedAuthors: [],
+  autoDownloadMedia: false,
+  responderMode: false,
+  theme: 'system',
+  batterySaver: false,
+  largeText: false,
+  lastSeen: {},
 };
 
 /** Read settings, returning sane defaults when nothing is stored yet. */
@@ -15,7 +24,15 @@ export async function readSettings(): Promise<SettingsRow> {
   const existing = await db.meta.get('settings');
   if (existing && existing.key === 'settings') {
     // Rows created before the profile editor have no `locality` field.
-    return { ...existing, locality: existing.locality ?? '' };
+    return {
+      ...DEFAULT_SETTINGS,
+      ...existing,
+      locality: existing.locality ?? '',
+      hintsSeen: existing.hintsSeen ?? [],
+      mutedAuthors: existing.mutedAuthors ?? [],
+      watchedAuthors: existing.watchedAuthors ?? [],
+      lastSeen: existing.lastSeen ?? {},
+    };
   }
   return { ...DEFAULT_SETTINGS, updatedAt: 0 };
 }

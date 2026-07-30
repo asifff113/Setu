@@ -130,6 +130,18 @@ describe('parseSms: FIND', () => {
   });
 });
 
+describe('parseSms: DONE / OFFER', () => {
+  it('parses a completion and a supply offer', () => {
+    expect(parseSms('DONE Rahim')).toEqual({ kind: 'done', name: 'Rahim' });
+    expect(parseSms('OFFER SHELTER Karim Feni - room for five')).toMatchObject({
+      kind: 'offer',
+      name: 'Karim',
+      cat: 'shelter',
+      msg: 'room for five',
+    });
+  });
+});
+
 describe('parseSms: unknown', () => {
   it('returns unknown for gibberish and empty input', () => {
     expect(parseSms('hello there')).toEqual({ kind: 'unknown' });
@@ -191,7 +203,7 @@ describe('shortAgo + usageReply', () => {
 
   it('usage help names every command', () => {
     const u = usageReply();
-    for (const word of ['SAFE', 'HELP', 'MISSING', 'FOUND', 'FIND']) {
+    for (const word of ['SAFE', 'HELP', 'MISSING', 'FOUND', 'FIND', 'DONE', 'OFFER']) {
       expect(u).toContain(word);
     }
   });

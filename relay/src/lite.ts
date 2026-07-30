@@ -15,6 +15,7 @@ import {
   latestStatusEvents,
   shortAgo,
   type SetuEvent,
+  type SetuEventView,
 } from '@setu/shared';
 import { escapeHtml } from './html.js';
 import type { EventStore } from './store.js';
@@ -45,10 +46,19 @@ function badge(e: SetuEvent): string {
 function statusRow(e: SetuEvent): string {
   const name = escapeHtml(e.n ?? 'Anonymous');
   const ago = escapeHtml(shortAgo(nowSeconds() - e.ts));
+  const view = e as SetuEventView;
+  const activity = `${view.replies ? ` <span class="b">💬 ${view.replies}</span>` : ''}${
+    view.responders ? ` <span class="b">${view.responders} responding</span>` : ''
+  }${view.resolved ? ' <span class="b ok">✓ Resolved</span>' : ''}`;
+  if (e.st === 'offer') {
+    const cat = e.cat ? ` · ${escapeHtml(e.cat)}` : '';
+    const msg = e.msg ? ` — ${escapeHtml(e.msg)}` : '';
+    return `<li><span class="s safe">🤝 সহায়তার প্রস্তাব / OFFER</span> <b>${name}</b>${cat}${badge(e)} ${activity}<span class="t">${ago}</span>${msg}</li>`;
+  }
   if (e.t === 'help' || e.st === 'need') {
     const cat = e.cat ? ` · ${escapeHtml(e.cat)}` : '';
     const msg = e.msg ? ` — ${escapeHtml(e.msg)}` : '';
-    return `<li><span class="s need">🆘 সাহায্য দরকার / NEEDS HELP</span> <b>${name}</b>${cat}${badge(e)} <span class="t">${ago}</span>${msg}</li>`;
+    return `<li><span class="s need">🆘 সাহায্য দরকার / NEEDS HELP</span> <b>${name}</b>${cat}${badge(e)} ${activity}<span class="t">${ago}</span>${msg}</li>`;
   }
   return `<li><span class="s safe">✅ নিরাপদ / SAFE</span> <b>${name}</b>${badge(e)} <span class="t">${ago}</span></li>`;
 }

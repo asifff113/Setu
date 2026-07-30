@@ -18,6 +18,8 @@ import { RelayWS, type RelayStatus, type RelayWSHooks } from '../sync/RelayWS';
 import { deriveAutoWsUrl, isPrivateWsUrl, normalizeNodeUrl, withGh } from '../sync/wsurl';
 import { useAppStore } from './appStore';
 import { useEventsStore } from './eventsStore';
+import { notifyIncoming } from '../lib/notifications';
+import { retryMediaUploads } from '../lib/media';
 
 const NODE_URL_KEY = 'setu.nodeUrl';
 // hydrate() only prunes once at boot, but a crisis device can stay open (and
@@ -77,10 +79,14 @@ export const useSyncStore = create<SyncState>((set, get) => {
       if (res.added > 0) {
         await useEventsStore.getState().refresh();
         void get().refreshStats();
+        void notifyIncoming(res.addedEvents);
       }
     },
     onStatus: (s: RelayStatus) => {
-      if (s === 'connected') set({ status: currentKind });
+      if (s === 'connected') {
+        set({ status: currentKind });
+        void retryMediaUploads(get().nodeUrl);
+      }
       else if (s === 'connecting') set({ status: 'connecting' });
       else set({ status: 'offline' });
     },

@@ -11,6 +11,7 @@ export interface IngestResult {
   known: number;
   /** failed signature/id verification, dropped */
   rejected: number;
+  addedEvents: SetuEvent[];
 }
 
 /**
@@ -20,7 +21,7 @@ export interface IngestResult {
  * store unverified.
  */
 export async function ingestEvents(events: SetuEvent[]): Promise<IngestResult> {
-  const result: IngestResult = { added: 0, known: 0, rejected: 0 };
+  const result: IngestResult = { added: 0, known: 0, rejected: 0, addedEvents: [] };
   const valid: SetuEvent[] = [];
   const now = Math.floor(Date.now() / 1000);
   for (const event of events) {
@@ -40,6 +41,7 @@ export async function ingestEvents(events: SetuEvent[]): Promise<IngestResult> {
     result.known = valid.length - toAdd.length;
     if (toAdd.length > 0) await db.events.bulkPut(toAdd);
     result.added = toAdd.length;
+    result.addedEvents = toAdd;
   });
   return result;
 }
@@ -60,9 +62,13 @@ export async function pruneEvents(
   nowSeconds: number = Math.floor(Date.now() / 1000),
 ): Promise<number> {
   let removed = 0;
-  await db.transaction('rw', db.events, async () => {
+  await db.transaction('rw', db.events, db.meta, async () => {
+    const identity = await db.meta.get('identity');
+    const ownAuthor = identity?.key === 'identity' ? identity.author : undefined;
     const expiredKeys = await db.events
-      .filter((e) => isExpired(e, nowSeconds))
+      // Preserve this device's authored log as private history. It is excluded
+      // from live views/sync after expiry, but remains available to the owner.
+      .filter((e) => isExpired(e, nowSeconds) && e.au !== ownAuthor)
       .primaryKeys();
     if (expiredKeys.length > 0) {
       await db.events.bulkDelete(expiredKeys);

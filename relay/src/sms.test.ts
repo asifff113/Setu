@@ -124,6 +124,28 @@ describe('handleInboundSms — acceptance path', () => {
     expect(find.json.stored).toBe(0); // a query never stores
   });
 
+  it('stores OFFER and resolves the latest matching help with DONE', async () => {
+    const now = 1_700_000_000;
+    const { deps } = makeDeps(now);
+    const offer = await handleInboundSms(
+      { message: 'OFFER SHELTER Karim Feni - room for five', from: '+880111' },
+      deps,
+    );
+    expect(offer.json.stored).toBe(1);
+    expect(deps.store.allLive(now).some((event) => event.st === 'offer')).toBe(true);
+
+    await handleInboundSms(
+      { message: 'HELP WATER Rahim Mirpur', from: '+880222' },
+      { ...deps, now: () => now + 1 },
+    );
+    const done = await handleInboundSms(
+      { message: 'DONE Rahim', from: '+880222' },
+      { ...deps, now: () => now + 2 },
+    );
+    expect(done.json.stored).toBe(1);
+    expect(deps.store.allLive(now + 2).some((event) => event.t === 'ack' && event.ak === 'done')).toBe(true);
+  });
+
   it('supersedes a MISSING with a later FOUND when answering FIND', async () => {
     const now = 1_700_000_000;
     const { deps } = makeDeps(now);

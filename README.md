@@ -221,6 +221,8 @@ grammar reference shown to users.
 - `SAFE <name> [area]` → checkin/safe
 - `HELP <MED|RESCUE|FOOD|WATER|SHELTER> <name> [area] [- message]` → help/need
 - `MISSING <name> [area]` / `FOUND <name> [area]` → person event
+- `DONE <name>` → resolves that person's latest open SMS help request
+- `OFFER <category> <name> [area] [- note]` → publishes available help
 - `FIND <name>` → the relay texts back that person's latest known status —
   the two-way exchange, not just one-way broadcast
 - anything else → a usage-help reply
@@ -258,6 +260,8 @@ for feature phones and 2G-era browsers that can't run the PWA at all.
 | `WS_MAX_PEERS` / `WS_MAX_PEERS_PER_IP` | relay | `5000` / `20` | Global and per-IP concurrent `/ws` connection caps. |
 | `WS_MAX_MESSAGES` / `WS_MESSAGE_WINDOW_MS` | relay | `60` / `10000` | Per-connection message rate limit (protocol messages per window) before the socket is closed as a policy violation. |
 | `METRICS_KEY` | relay | — | Unlocks `GET /metrics` (event count) via `X-Setu-Metrics-Key`. Unset → `/metrics` is disabled entirely; `/healthz` never leaks counts, only `{ ok }`. |
+| `COORDINATOR_KEY` | relay | — | Enables the aggregate `/dashboard` and live CSV export. Both use HTTP Basic (any username; this value as password) or `Authorization: Bearer`. Unset → both routes return 404. |
+| `BLOB_RATE_LIMIT` / `BLOB_RATE_WINDOW_MS` | relay | `30` / `60000` | Per-client attachment-upload limit. Blobs are hash-verified, capped at 150 KB, and garbage-collected after their referencing event expires. |
 | `FLY_APP_NAME` | relay | set by Fly | Presence gates whether the `Fly-Client-Ip` header is trusted for rate-limiting/origin decisions — only Fly's own proxy sets it truthfully, so it's ignored anywhere else (Render, a bare VPS, local dev). |
 
 ## Demo / seed mode

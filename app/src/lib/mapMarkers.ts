@@ -3,7 +3,13 @@
  * no DOM, so it's cheap to unit test and reused by both the live map and the
  * offline area-count fallback.
  */
-import { findAreaByGh, latestPersonEvents, latestStatusEvents, type SetuEvent } from '@setu/shared';
+import {
+  findAreaByGh,
+  latestPersonEvents,
+  latestStatusEvents,
+  type SetuEvent,
+  type SetuEventView,
+} from '@setu/shared';
 
 export type MarkerColor = 'safe' | 'need';
 
@@ -12,7 +18,7 @@ export interface MapMarker {
   lat: number;
   lng: number;
   color: MarkerColor;
-  event: SetuEvent;
+  event: SetuEventView;
 }
 
 export interface AreaCount {

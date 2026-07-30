@@ -1,13 +1,24 @@
-import { findAreaByCode, latestStatusEvents, type SetuCategory, type SetuPersonStatus } from '@setu/shared';
-import { useEffect, useMemo, useState, type SVGProps } from 'react';
+import {
+  findAreaByCode,
+  latestStatusEvents,
+  type SetuAttachment,
+  type SetuCategory,
+  type SetuPersonStatus,
+  type SetuUrgency,
+} from '@setu/shared';
+import { useEffect, useMemo, useRef, useState, type SVGProps } from 'react';
+import { Link } from 'react-router-dom';
 import { AreaPicker } from '../components/AreaPicker';
 import { BottomSheet } from '../components/BottomSheet';
 import { ConnectivityPill } from '../components/ConnectivityPill';
+import { AttachmentComposer } from '../components/AttachmentComposer';
 import { useI18n } from '../i18n';
 import { getCurrentLocation } from '../lib/geo';
 import { timeAgo } from '../lib/time';
 import { useAppStore } from '../store/appStore';
 import { useEventsStore } from '../store/eventsStore';
+import { circleMembers } from '../db/social';
+import type { CircleRow } from '../db/schema';
 
 const CATEGORIES: SetuCategory[] = ['med', 'rescue', 'food', 'water', 'shelter', 'other'];
 const PERSON_STATUSES: SetuPersonStatus[] = ['missing', 'found', 'seen'];
@@ -57,7 +68,10 @@ export function HomeScreen() {
 
   const [helpOpen, setHelpOpen] = useState(false);
   const [helpCategory, setHelpCategory] = useState<SetuCategory | null>(null);
+  const [helpKind, setHelpKind] = useState<'need' | 'offer'>('need');
+  const [helpUrgency, setHelpUrgency] = useState<SetuUrgency>('normal');
   const [helpNote, setHelpNote] = useState('');
+  const [helpAttachment, setHelpAttachment] = useState<SetuAttachment>();
   const [attachLoc, setAttachLoc] = useState(false);
   const [locState, setLocState] = useState<'idle' | 'fetching' | 'attached' | 'unavailable'>('idle');
 
@@ -66,12 +80,19 @@ export function HomeScreen() {
   const [personAreaCode, setPersonAreaCode] = useState<string | null>(null);
   const [personStatus, setPersonStatus] = useState<SetuPersonStatus>('missing');
   const [personNote, setPersonNote] = useState('');
+  const [personAttachment, setPersonAttachment] = useState<SetuAttachment>();
+  const [circle, setCircle] = useState<CircleRow[]>([]);
+  const shortcutHandled = useRef(false);
 
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(null), 3000);
     return () => clearTimeout(id);
   }, [toast]);
+
+  useEffect(() => {
+    void circleMembers().then(setCircle);
+  }, []);
 
   const myStatus = useMemo(() => {
     if (!identity) return undefined;
@@ -81,6 +102,8 @@ export function HomeScreen() {
   function resetHelpForm() {
     setHelpCategory(null);
     setHelpNote('');
+    setHelpUrgency('normal');
+    setHelpAttachment(undefined);
     setAttachLoc(false);
     setLocState('idle');
   }
@@ -90,6 +113,7 @@ export function HomeScreen() {
     setPersonAreaCode(settings?.areaCode ?? null);
     setPersonStatus('missing');
     setPersonNote('');
+    setPersonAttachment(undefined);
   }
 
   async function submitSafe() {
@@ -103,6 +127,10 @@ export function HomeScreen() {
         st: 'safe',
         n: settings.name.trim() || undefined,
       });
+      navigator.vibrate?.([30, 30, 30]);
+      if ('Notification' in window && Notification.permission === 'default') {
+        void Notification.requestPermission();
+      }
       setToast(t('submittedSafe'));
     } catch {
       setToast(t('errorGeneric'));
@@ -111,8 +139,9 @@ export function HomeScreen() {
     }
   }
 
-  function openHelp() {
+  function openHelp(kind: 'need' | 'offer' = 'need') {
     resetHelpForm();
+    setHelpKind(kind);
     setHelpOpen(true);
   }
 
@@ -135,12 +164,15 @@ export function HomeScreen() {
         t: 'help',
         ts: nowSeconds(),
         gh: settings.gh,
-        st: 'need',
+        st: helpKind,
         cat: helpCategory,
         n: settings.name.trim() || undefined,
         msg: helpNote.trim() ? helpNote.trim().slice(0, 280) : undefined,
         loc,
+        urg: helpKind === 'need' ? helpUrgency : undefined,
+        att: helpAttachment,
       });
+      navigator.vibrate?.(80);
       setHelpOpen(false);
       setToast(t('submittedHelp'));
     } catch {
@@ -167,6 +199,7 @@ export function HomeScreen() {
         pn: personName.trim().slice(0, 48),
         pst: personStatus,
         msg: personNote.trim() ? personNote.trim().slice(0, 280) : undefined,
+        att: personAttachment,
       });
       setPersonOpen(false);
       setToast(t('submittedPerson'));
@@ -176,6 +209,20 @@ export function HomeScreen() {
       setBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (shortcutHandled.current || !settings) return;
+    const url = new URL(window.location.href);
+    const action = url.searchParams.get('action');
+    if (!action) return;
+    shortcutHandled.current = true;
+    url.searchParams.delete('action');
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+    if (action === 'safe') void submitSafe();
+    if (action === 'help') openHelp('need');
+    // Shortcut action is intentionally handled once after settings hydrate.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings]);
 
   const statusBorder =
     myStatus?.st === 'safe'
@@ -199,6 +246,31 @@ export function HomeScreen() {
         <p className="mt-4 text-sm leading-relaxed text-muted">{t('onboardSubtitle')}</p>
       </section>
 
+      {circle.length > 0 && (
+        <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-ink">{t('circleTitle')}</h2>
+            <Link to="/circle" className="text-xs font-semibold text-accent">{t('circleManage')}</Link>
+          </div>
+          <div className="mt-3 flex gap-3 overflow-x-auto">
+            {circle.map((member) => {
+              const status = latestStatusEvents(events).find((event) => event.au === member.au);
+              return (
+                <div key={member.au} className="w-20 shrink-0 text-center">
+                  <span className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full font-bold ${
+                    status?.st === 'safe' ? 'bg-safe/15 text-safe' : status?.st === 'need' ? 'bg-need/15 text-need' : 'bg-surface-2 text-muted'
+                  }`}>
+                    {status?.st === 'safe' ? '✓' : status?.st === 'need' ? '!' : '?'}
+                  </span>
+                  <p className="mt-1 truncate text-xs font-semibold text-ink">{member.name}</p>
+                  <p className="truncate text-[10px] text-muted">{status ? timeAgo(status.ts, lang) : t('circleNoStatus')}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <div className="grid grid-cols-1 gap-3">
         <button
           type="button"
@@ -212,11 +284,20 @@ export function HomeScreen() {
         <button
           type="button"
           disabled={busy}
-          onClick={openHelp}
+          onClick={() => openHelp('need')}
           className="flex min-h-[112px] items-center justify-center gap-4 rounded-2xl bg-need px-5 py-6 text-xl font-bold text-white shadow-lg shadow-need/20 active:opacity-90 disabled:opacity-50"
         >
           <HelpIcon className="h-8 w-8" aria-hidden="true" />
           <span>{t('btnHelp')}</span>
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => openHelp('offer')}
+          className="flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-safe/30 bg-safe/10 px-4 py-3.5 text-sm font-semibold text-safe shadow-sm active:opacity-90 disabled:opacity-50"
+        >
+          <span aria-hidden="true">🤝</span>
+          <span>{t('btnOffer')}</span>
         </button>
         <button
           type="button"
@@ -228,6 +309,12 @@ export function HomeScreen() {
           <span>{t('btnReportPerson')}</span>
         </button>
       </div>
+
+      {!myStatus && (
+        <div className="rounded-2xl border border-safe/30 bg-safe/10 px-4 py-3 text-sm leading-relaxed text-safe">
+          {t('homeSafeNudge')}
+        </div>
+      )}
 
       <section className={`rounded-2xl border border-line bg-surface p-4 shadow-sm ${statusBorder}`}>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
@@ -259,7 +346,11 @@ export function HomeScreen() {
         </div>
       )}
 
-      <BottomSheet open={helpOpen} onClose={() => setHelpOpen(false)} title={t('helpSheetTitle')}>
+      <BottomSheet
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        title={helpKind === 'offer' ? t('offerSheetTitle') : t('helpSheetTitle')}
+      >
         <div className="flex flex-col gap-4 text-left">
           <div>
             <p className="mb-2 text-sm font-medium text-muted">{t('categoryLabel')}</p>
@@ -284,6 +375,38 @@ export function HomeScreen() {
             </div>
           </div>
 
+          {helpKind === 'need' && (
+            <div>
+              <p className="mb-2 text-sm font-medium text-muted">{t('urgencyLabel')}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(['normal', 'urgent', 'critical'] as SetuUrgency[]).map((urgency) => (
+                  <button
+                    key={urgency}
+                    type="button"
+                    onClick={() => setHelpUrgency(urgency)}
+                    className={`min-h-11 rounded-xl border px-2 text-xs font-semibold ${
+                      helpUrgency === urgency
+                        ? urgency === 'critical' ? 'border-need bg-need text-white' : 'border-accent bg-accent text-white'
+                        : 'border-line bg-surface-2 text-muted'
+                    }`}
+                  >
+                    {urgency === 'normal' ? t('urgencyNormal') : urgency === 'urgent' ? t('urgencyUrgent') : t('urgencyCritical')}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-xs text-muted">{t('urgencySelfReported')}</p>
+            </div>
+          )}
+
+          {helpKind === 'need' && helpCategory && latestStatusEvents(events).some(
+            (event) => event.t === 'help' && event.st === 'need' && !event.resolved &&
+              event.cat === helpCategory && event.gh === settings?.gh,
+          ) && (
+            <p className="rounded-xl bg-warning/10 px-3 py-2 text-xs leading-relaxed text-warning">
+              {t('duplicateHelpWarning')}
+            </p>
+          )}
+
           <div>
             <label className="mb-2 block text-sm font-medium text-muted" htmlFor="help-note">
               {t('noteLabel')}
@@ -298,6 +421,8 @@ export function HomeScreen() {
               className="w-full resize-none rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
+
+          <AttachmentComposer value={helpAttachment} onChange={setHelpAttachment} />
 
           <label className="flex items-center gap-3 rounded-xl border border-line bg-surface-2 px-4 py-3">
             <input
@@ -351,6 +476,8 @@ export function HomeScreen() {
               className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
+
+          <AttachmentComposer value={personAttachment} onChange={setPersonAttachment} />
 
           <div>
             <p className="mb-2 text-sm font-medium text-muted">{t('personAreaLabel')}</p>

@@ -28,4 +28,5 @@ export const PERSON_STATUS_LABELS: Record<SetuPersonStatus, Entry> = {
 export const STATUS_LABELS: Record<SetuStatus, Entry> = {
   safe: { bn: 'নিরাপদ', en: 'Safe' },
   need: { bn: 'সাহায্য দরকার', en: 'Needs help' },
+  offer: { bn: 'সহায়তার প্রস্তাব', en: 'Offering help' },
 };

@@ -29,7 +29,9 @@ const SPEED: Record<Speed, { chunk: number; fps: number }> = {
 export function BeamSender({ events, onClose }: BeamSenderProps) {
   const { t, lang } = useI18n();
   // Snapshot events once so a parent re-render can't restart the encoder.
-  const [snapshot] = useState(events);
+  // Area chatter is intentionally relay/local-node/file only: a 24-hour chat
+  // stream can crowd safety records out of a QR beam's tiny budget.
+  const [snapshot] = useState(events.filter((event) => event.t !== 'chat'));
   const [speed, setSpeed] = useState<Speed>('normal');
   const [phase, setPhase] = useState<'building' | 'ready'>('building');
   const [meta, setMeta] = useState({ k: 0, bytes: 0 });

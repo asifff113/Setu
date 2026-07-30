@@ -1,0 +1,14 @@
+
+> @setu/relay@0.0.1 start
+> tsx src/index.ts
+
+[setu-relay] listening on http://localhost:8790
+[setu-relay] sync at ws://localhost:8790/ws
+[setu-relay] relay identity xmA9Bf9IPpFD1kf-X7Fdl_EiLJNPewrLOjXMxlc41NE
+[setu-relay] cached events: 0
+[setu-relay] sms webhook  POST http://localhost:8790/api/sms/inbound
+[setu-relay] sms simulator     http://localhost:8790/sms-sim
+[setu-relay] lite board (no-JS) http://localhost:8790/lite
+[setu-relay] no GATEWAY_URL set — SMS replies are logged only
+[setu-relay] sms webhook local demo mode only, rate-limited 30/60s per client
+[setu-relay] serving app from D:\projects\setu\app\dist

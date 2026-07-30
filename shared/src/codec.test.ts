@@ -142,6 +142,63 @@ describe('event lifecycle', () => {
     );
     expect([help, person, bulletin].every(verifyEvent)).toBe(true);
   });
+
+  it('verifies reference, chat, offer, and attachment event shapes', () => {
+    const parent = createEvent(
+      { t: 'help', ts: 1, gh: 'wh0r', st: 'need', cat: 'water', urg: 'urgent' },
+      kp,
+    );
+    const reply = createEvent(
+      { t: 'reply', ts: 2, gh: 'wh0r', re: parent.id, msg: 'Coming now' },
+      kp,
+    );
+    const ack = createEvent(
+      { t: 'ack', ts: 3, gh: 'wh0r', re: parent.id, ak: 'onit' },
+      kp,
+    );
+    const retract = createEvent(
+      { t: 'retract', ts: 4, gh: 'wh0r', re: reply.id },
+      kp,
+    );
+    const chat = createEvent({ t: 'chat', ts: 5, gh: 'wh0r', msg: 'Road open' }, kp);
+    const photo = createEvent(
+      {
+        t: 'person',
+        ts: 6,
+        gh: 'wh0r',
+        pn: 'Karim',
+        pst: 'missing',
+        att: { h: 'A'.repeat(43), k: 'img', sz: 1024, w: 640, hh: 'LEHV6nWB2yk8pyo0adR*.7kCMdnj' },
+      },
+      kp,
+    );
+    const offer = createEvent(
+      { t: 'help', ts: 7, gh: 'wh0r', st: 'offer', cat: 'shelter', msg: 'Space for five' },
+      kp,
+    );
+    expect([reply, ack, retract, chat, photo, offer].every(isValidEventShape)).toBe(true);
+    expect(chat.ttl).toBe(86_400);
+  });
+
+  it('rejects malformed per-type reference fields and oversized attachments', () => {
+    const parent = makeCheckin();
+    const reply = createEvent({ t: 'reply', ts: 2, gh: 'aa', re: parent.id, msg: 'ok' }, kp);
+    expect(isValidEventShape({ ...reply, re: undefined })).toBe(false);
+    expect(isValidEventShape({ ...reply, ak: 'done' })).toBe(false);
+    const retract = createEvent({ t: 'retract', ts: 3, gh: 'aa', re: parent.id }, kp);
+    expect(isValidEventShape({ ...retract, msg: 'not allowed' })).toBe(false);
+    const image = createEvent(
+      {
+        t: 'help',
+        ts: 4,
+        gh: 'aa',
+        st: 'need',
+        att: { h: 'A'.repeat(43), k: 'img', sz: 150_001 },
+      },
+      kp,
+    );
+    expect(isValidEventShape(image)).toBe(false);
+  });
 });
 
 describe('tamper rejection', () => {

@@ -1,5 +1,6 @@
 import { DISTRICTS, findAreaByCode } from '@setu/shared';
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useI18n, type DictKey } from '../i18n';
 import { useAppStore } from '../store/appStore';
 
@@ -17,6 +18,8 @@ const SMS_COMMANDS: { labelKey: DictKey; example: string }[] = [
   { labelKey: 'infoSmsMissing', example: 'MISSING Karim Feni' },
   { labelKey: 'infoSmsFound', example: 'FOUND Karim Feni' },
   { labelKey: 'infoSmsFind', example: 'FIND Karim' },
+  { labelKey: 'infoSmsDone', example: 'DONE Rahim' },
+  { labelKey: 'infoSmsOffer', example: 'OFFER SHELTER Karim Feni - room for five' },
 ];
 
 const TRUST_ROWS: { icon: string; tint: string; descKey: DictKey }[] = [
@@ -195,6 +198,77 @@ export function InfoScreen() {
             {profileMessage === 'saved' ? t('infoProfileSaved') : t('errorGeneric')}
           </p>
         )}
+      </section>
+
+      <section className="grid grid-cols-2 gap-3">
+        {[
+          ['/guide', '🛟', 'moreGuide'],
+          ['/history', '🕘', 'moreHistory'],
+          ['/circle', '👨‍👩‍👧', 'moreCircle'],
+          ['/share', '▦', 'moreShare'],
+          ['/connect', '🔗', 'moreConnect'],
+          ['/media', '📦', 'moreMedia'],
+        ].map(([to, icon, key]) => (
+          <Link
+            key={to}
+            to={to!}
+            className="flex min-h-24 flex-col justify-between rounded-2xl border border-line bg-surface p-4 shadow-sm"
+          >
+            <span className="text-2xl" aria-hidden="true">{icon}</span>
+            <span className="mt-3 text-sm font-semibold text-ink">{t(key as DictKey)}</span>
+          </Link>
+        ))}
+      </section>
+
+      <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('settingsDisplay')}</p>
+        <div className="mt-3 flex flex-col gap-3">
+          <label className="flex items-center justify-between gap-4 text-sm text-ink">
+            <span>{t('settingsDark')}</span>
+            <input
+              type="checkbox"
+              checked={settings?.theme === 'dark'}
+              onChange={(event) => void updateSettings({ theme: event.target.checked ? 'dark' : 'light' })}
+              className="h-5 w-5 accent-accent"
+            />
+          </label>
+          <label className="flex items-center justify-between gap-4 text-sm text-ink">
+            <span>{t('settingsBattery')}</span>
+            <input
+              type="checkbox"
+              checked={settings?.batterySaver ?? false}
+              onChange={(event) => void updateSettings({ batterySaver: event.target.checked })}
+              className="h-5 w-5 accent-accent"
+            />
+          </label>
+          <label className="flex items-center justify-between gap-4 text-sm text-ink">
+            <span>{t('settingsLargeText')}</span>
+            <input
+              type="checkbox"
+              checked={settings?.largeText ?? false}
+              onChange={(event) => void updateSettings({ largeText: event.target.checked })}
+              className="h-5 w-5 accent-accent"
+            />
+          </label>
+          <label className="flex items-center justify-between gap-4 text-sm text-ink">
+            <span>{t('settingsAutoMedia')}</span>
+            <input
+              type="checkbox"
+              checked={settings?.autoDownloadMedia ?? false}
+              onChange={(event) => void updateSettings({ autoDownloadMedia: event.target.checked })}
+              className="h-5 w-5 accent-accent"
+            />
+          </label>
+          <label className="flex items-center justify-between gap-4 text-sm text-ink">
+            <span>{t('settingsResponder')}</span>
+            <input
+              type="checkbox"
+              checked={settings?.responderMode ?? false}
+              onChange={(event) => void updateSettings({ responderMode: event.target.checked })}
+              className="h-5 w-5 accent-accent"
+            />
+          </label>
+        </div>
       </section>
 
       <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">

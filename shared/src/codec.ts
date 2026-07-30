@@ -22,6 +22,7 @@ import {
 } from './crypto.js';
 import {
   DEFAULT_TTL_SECONDS,
+  CHAT_TTL_SECONDS,
   MAX_FUTURE_SKEW_SECONDS,
   MAX_TTL_SECONDS,
   type SetuEvent,
@@ -33,7 +34,9 @@ import {
 const encoder = new Encoder({ useRecords: false, variableMapSize: true });
 
 /** Fields that never participate in the content hash. */
-const NON_CONTENT_KEYS = new Set(['id', 'sig']);
+const VIEW_KEYS = ['resolved', 'responders', 'replies', 'retracted'];
+const NON_CONTENT_KEYS = new Set(['id', 'sig', ...VIEW_KEYS]);
+const NON_SIGNED_KEYS = new Set(['sig', ...VIEW_KEYS]);
 
 /**
  * Build a canonical plain object: keys sorted, `undefined` dropped, optionally
@@ -49,7 +52,10 @@ function canonicalObject(
     if (exclude.has(key)) continue;
     const value = source[key];
     if (value === undefined) continue;
-    out[key] = value;
+    out[key] =
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? canonicalObject(value as Record<string, unknown>, new Set())
+        : value;
   }
   return out;
 }
@@ -64,7 +70,9 @@ export function contentBytes(event: Partial<SetuEvent>): Uint8Array {
 /** Canonical CBOR bytes of the signed body (event minus sig; includes id). */
 export function signedBytes(event: Partial<SetuEvent>): Uint8Array {
   return encoder.encode(
-    canonicalObject(event as Record<string, unknown>, new Set(['sig'])),
+    canonicalObject(event as Record<string, unknown>, NON_SIGNED_KEYS),
+    // View annotations are derived locally and never part of the signed wire
+    // event; excluding them lets trust badges verify annotated cards.
   );
 }
 
@@ -90,7 +98,7 @@ export function createEvent(input: NewEventInput, keypair: Keypair): SetuEvent {
   const base: Omit<SetuEvent, 'id' | 'sig'> = {
     ...input,
     v: 1,
-    ttl: input.ttl ?? DEFAULT_TTL_SECONDS,
+    ttl: input.ttl ?? (input.t === 'chat' ? CHAT_TTL_SECONDS : DEFAULT_TTL_SECONDS),
     au: pubkeyToAuthor(keypair.publicKey),
   };
   const id = deriveId(base);
@@ -142,13 +150,21 @@ const EVENT_TYPES: ReadonlySet<string> = new Set([
   'help',
   'bulletin',
   'person',
+  'reply',
+  'ack',
+  'retract',
+  'chat',
 ]);
-const STATUSES: ReadonlySet<string> = new Set(['safe', 'need']);
+const STATUSES: ReadonlySet<string> = new Set(['safe', 'need', 'offer']);
 const CATEGORIES: ReadonlySet<string> = new Set([
   'med', 'rescue', 'food', 'water', 'shelter', 'other',
 ]);
 const PERSON_STATUSES: ReadonlySet<string> = new Set(['missing', 'found', 'seen']);
 const SOURCES: ReadonlySet<string> = new Set(['app', 'sms']);
+const ACK_KINDS: ReadonlySet<string> = new Set(['onit', 'done', 'seen']);
+const ATTACHMENT_KINDS: ReadonlySet<string> = new Set(['img', 'aud']);
+const URGENCIES: ReadonlySet<string> = new Set(['normal', 'urgent', 'critical']);
+const SEVERITIES: ReadonlySet<string> = new Set(['info', 'warning', 'danger']);
 const B64URL_RE = /^[A-Za-z0-9_-]+$/;
 const GEOHASH_RE = /^[0123456789bcdefghjkmnpqrstuvwxyz]{0,12}$/;
 
@@ -179,6 +195,7 @@ function utf8Length(text: string): number {
  */
 export function isValidEventShape(event: SetuEvent): boolean {
   if (!event || typeof event !== 'object') return false;
+  if (VIEW_KEYS.some((key) => key in (event as unknown as Record<string, unknown>))) return false;
   if (event.v !== 1) return false;
   if (typeof event.t !== 'string' || !EVENT_TYPES.has(event.t)) return false;
   if (typeof event.id !== 'string' || event.id.length !== 22 || !B64URL_RE.test(event.id)) return false;
@@ -195,6 +212,23 @@ export function isValidEventShape(event: SetuEvent): boolean {
   if (event.cat !== undefined && !CATEGORIES.has(event.cat)) return false;
   if (event.pst !== undefined && !PERSON_STATUSES.has(event.pst)) return false;
   if (event.src !== undefined && !SOURCES.has(event.src)) return false;
+  if (event.re !== undefined && (typeof event.re !== 'string' || event.re.length !== 22 || !B64URL_RE.test(event.re))) return false;
+  if (event.ak !== undefined && !ACK_KINDS.has(event.ak)) return false;
+  if (event.urg !== undefined && !URGENCIES.has(event.urg)) return false;
+  if (event.sev !== undefined && !SEVERITIES.has(event.sev)) return false;
+  if (event.att !== undefined) {
+    const att: unknown = event.att;
+    if (!att || typeof att !== 'object' || Array.isArray(att)) return false;
+    const value = att as Record<string, unknown>;
+    const allowed = new Set(['h', 'k', 'sz', 'w', 'hh']);
+    if (Object.keys(value).some((key) => !allowed.has(key))) return false;
+    if (typeof value.h !== 'string' || value.h.length !== 43 || !B64URL_RE.test(value.h)) return false;
+    if (typeof value.k !== 'string' || !ATTACHMENT_KINDS.has(value.k)) return false;
+    const maxSize = value.k === 'img' ? 150_000 : 100_000;
+    if (!Number.isSafeInteger(value.sz) || (value.sz as number) < 1 || (value.sz as number) > maxSize) return false;
+    if (value.w !== undefined && (!Number.isSafeInteger(value.w) || (value.w as number) < 1 || (value.w as number) > 1280)) return false;
+    if (value.hh !== undefined && (typeof value.hh !== 'string' || value.hh.length < 6 || value.hh.length > 64)) return false;
+  }
   if (event.loc !== undefined) {
     const loc: unknown = event.loc;
     if (
@@ -206,10 +240,60 @@ export function isValidEventShape(event: SetuEvent): boolean {
       return false;
     }
   }
-  if (event.t === 'checkin' && (event.st !== 'safe' || event.pn !== undefined || event.pst !== undefined || event.cat !== undefined)) return false;
-  if (event.t === 'help' && (event.st !== 'need' || event.pn !== undefined || event.pst !== undefined)) return false;
-  if (event.t === 'bulletin' && (event.msg === undefined || event.st !== undefined || event.cat !== undefined || event.pn !== undefined || event.pst !== undefined)) return false;
-  if (event.t === 'person' && (event.pn === undefined || event.pst === undefined || event.st !== undefined || event.cat !== undefined)) return false;
+  if (
+    event.t === 'checkin' &&
+    (event.st !== 'safe' || event.pn !== undefined || event.pst !== undefined ||
+      event.cat !== undefined || event.re !== undefined || event.ak !== undefined ||
+      event.att !== undefined || event.urg !== undefined || event.sev !== undefined)
+  ) return false;
+  if (
+    event.t === 'help' &&
+    ((event.st !== 'need' && event.st !== 'offer') || event.pn !== undefined ||
+      event.pst !== undefined || event.re !== undefined || event.ak !== undefined ||
+      event.sev !== undefined)
+  ) return false;
+  if (
+    event.t === 'bulletin' &&
+    (event.msg === undefined || event.st !== undefined || event.cat !== undefined ||
+      event.pn !== undefined || event.pst !== undefined || event.re !== undefined ||
+      event.ak !== undefined || event.urg !== undefined)
+  ) return false;
+  if (
+    event.t === 'person' &&
+    (event.pn === undefined || event.pst === undefined || event.st !== undefined ||
+      event.cat !== undefined || event.re !== undefined || event.ak !== undefined ||
+      event.urg !== undefined || event.sev !== undefined)
+  ) return false;
+  if (
+    event.t === 'reply' &&
+    (event.re === undefined || event.msg === undefined || event.msg.trim().length === 0 ||
+      event.st !== undefined || event.cat !== undefined || event.pn !== undefined ||
+      event.pst !== undefined || event.ak !== undefined || event.loc !== undefined ||
+      event.urg !== undefined || event.sev !== undefined)
+  ) return false;
+  if (
+    event.t === 'ack' &&
+    (event.re === undefined || event.ak === undefined ||
+      (event.msg !== undefined && event.msg.length > 140) || event.st !== undefined ||
+      event.cat !== undefined || event.pn !== undefined || event.pst !== undefined ||
+      event.att !== undefined || event.loc !== undefined || event.urg !== undefined ||
+      event.sev !== undefined)
+  ) return false;
+  if (
+    event.t === 'retract' &&
+    (event.re === undefined || event.n !== undefined || event.msg !== undefined ||
+      event.st !== undefined || event.cat !== undefined || event.pn !== undefined ||
+      event.pst !== undefined || event.ak !== undefined || event.att !== undefined ||
+      event.loc !== undefined || event.urg !== undefined || event.sev !== undefined)
+  ) return false;
+  if (
+    event.t === 'chat' &&
+    (event.msg === undefined || event.msg.trim().length === 0 || event.gh.length === 0 ||
+      event.ttl > CHAT_TTL_SECONDS || event.st !== undefined || event.cat !== undefined ||
+      event.pn !== undefined || event.pst !== undefined || event.re !== undefined ||
+      event.ak !== undefined || event.loc !== undefined || event.urg !== undefined ||
+      event.sev !== undefined)
+  ) return false;
   return utf8Length(JSON.stringify(event)) <= MAX_EVENT_BYTES;
 }
 

@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { createEvent, type NewEventInput } from './codec.js';
 import { generateKeypair } from './crypto.js';
 import type { SetuEvent } from './types.js';
-import { bulletinEvents, latestPersonEvents, latestStatusEvents } from './views.js';
+import {
+  bulletinEvents,
+  chatEvents,
+  latestPersonEvents,
+  latestStatusEvents,
+  threadFor,
+  validRetractionIds,
+} from './views.js';
 
 const kp = generateKeypair();
 const other = generateKeypair();
@@ -77,5 +84,33 @@ describe('bulletinEvents', () => {
     const a = ev({ t: 'bulletin', ts: 1, gh: 'wh0r', msg: 'first' });
     const b = ev({ t: 'bulletin', ts: 2, gh: 'wh0r', msg: 'second' });
     expect(bulletinEvents([a, b]).map((e) => e.id)).toEqual([b.id, a.id]);
+  });
+});
+
+describe('threads and lifecycle', () => {
+  it('derives replies, responders, resolution, and valid retractions', () => {
+    const parent = ev({ t: 'help', ts: 1, gh: 'wh0r', st: 'need', cat: 'rescue' });
+    const reply = ev({ t: 'reply', ts: 2, gh: 'wh0r', re: parent.id, msg: 'Where exactly?' }, other);
+    const onit = ev({ t: 'ack', ts: 3, gh: 'wh0r', re: parent.id, ak: 'onit' }, other);
+    const done = ev({ t: 'ack', ts: 4, gh: 'wh0r', re: parent.id, ak: 'done' }, other);
+    const tombstone = ev({ t: 'retract', ts: 5, gh: 'wh0r', re: reply.id }, other);
+    const view = latestStatusEvents([parent, reply, onit, done, tombstone])[0]!;
+    expect(view).toMatchObject({ resolved: true, responders: 1, replies: 0 });
+    expect(threadFor([parent, reply, onit, done, tombstone], parent.id)).toEqual([onit, done]);
+    expect(validRetractionIds([parent, reply, tombstone])).toEqual(new Set([reply.id]));
+  });
+
+  it('ignores a retraction signed by someone other than the target owner', () => {
+    const parent = ev({ t: 'help', ts: 1, gh: 'wh0r', st: 'need' });
+    const forged = ev({ t: 'retract', ts: 2, gh: 'wh0r', re: parent.id }, other);
+    expect(latestStatusEvents([parent, forged])).toHaveLength(1);
+  });
+
+  it('returns area chat in chronological order and hides valid retractions', () => {
+    const a = ev({ t: 'chat', ts: 2, gh: 'wh0r', msg: 'second' });
+    const b = ev({ t: 'chat', ts: 1, gh: 'wh0r', msg: 'first' });
+    const otherArea = ev({ t: 'chat', ts: 3, gh: 'zzzz', msg: 'elsewhere' });
+    const retract = ev({ t: 'retract', ts: 4, gh: 'wh0r', re: a.id });
+    expect(chatEvents([a, b, otherArea, retract], 'wh0r').map((event) => event.id)).toEqual([b.id]);
   });
 });

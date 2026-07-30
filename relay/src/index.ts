@@ -3,7 +3,7 @@ import { getConnInfo } from '@hono/node-server/conninfo';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
-import { timingSafeEqual } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
@@ -17,6 +17,7 @@ import { gatewayFromEnv, handleInboundSms } from './sms.js';
 import { smsSimPage } from './smssim.js';
 import { EventStore } from './store.js';
 import { attachSync, type SyncHub } from './sync.js';
+import { dashboardPage, eventCsv } from './dashboard.js';
 import type { Context } from 'hono';
 import type { SetuEvent } from '@setu/shared';
 
@@ -50,8 +51,16 @@ const smsSimKey = process.env.SMS_SIM_KEY?.trim() || undefined;
 const smsRateLimit = Number(process.env.SMS_RATE_LIMIT ?? 30);
 const smsRateWindowMs = Number(process.env.SMS_RATE_WINDOW_MS ?? 60_000);
 const smsLimiter = createRateLimiter(smsRateLimit, smsRateWindowMs);
+const blobLimiter = createRateLimiter(
+  Number(process.env.BLOB_RATE_LIMIT ?? 30),
+  Number(process.env.BLOB_RATE_WINDOW_MS ?? 60_000),
+);
 const MAX_SMS_BODY_BYTES = 16 * 1024;
+const MAX_BLOB_BYTES = 150_000;
+const BLOB_HASH_RE = /^[A-Za-z0-9_-]{43}$/;
+const BLOB_MIME = new Set(['image/webp', 'audio/webm', 'audio/ogg', 'application/octet-stream']);
 const metricsKey = process.env.METRICS_KEY?.trim() || undefined;
+const coordinatorKey = process.env.COORDINATOR_KEY?.trim() || undefined;
 
 if (isProduction && !smsInboundKey) {
   throw new Error('SMS_INBOUND_KEY is required in production');
@@ -115,6 +124,22 @@ function smsAuthOk(c: Context): boolean {
   const auth = c.req.header('authorization')?.trim();
   if (!auth) return false;
   return timingSafeEqualStr(auth, smsInboundKey) || timingSafeEqualStr(auth, `Bearer ${smsInboundKey}`);
+}
+
+function coordinatorAuthOk(c: Context): boolean {
+  if (!coordinatorKey) return false;
+  const auth = c.req.header('authorization')?.trim();
+  if (!auth) return false;
+  if (auth.startsWith('Bearer ')) return timingSafeEqualStr(auth.slice(7), coordinatorKey);
+  if (auth.startsWith('Basic ')) {
+    try {
+      const decoded = Buffer.from(auth.slice(6), 'base64').toString('utf8');
+      return timingSafeEqualStr(decoded.split(':').slice(1).join(':'), coordinatorKey);
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 // Assigned once attachSync runs (after serve() below). Until then, and if the
@@ -181,6 +206,27 @@ app.get('/node-qr', async (c) => c.html(await nodeQrPage(port)));
 // GET /lite — zero-JS read-only board (2G / Opera Mini fallback).
 app.get('/lite', (c) => c.html(litePage(store)));
 
+app.get('/dashboard', (c) => {
+  if (!coordinatorKey) return c.text('Not found', 404);
+  if (!coordinatorAuthOk(c)) {
+    c.header('www-authenticate', 'Basic realm="Setu coordinator"');
+    return c.text('Authentication required', 401);
+  }
+  return c.html(dashboardPage(store.allLive(Math.floor(Date.now() / 1000))));
+});
+
+app.get('/api/coordinator/export.csv', (c) => {
+  if (!coordinatorKey) return c.text('Not found', 404);
+  if (!coordinatorAuthOk(c)) {
+    c.header('www-authenticate', 'Basic realm="Setu coordinator"');
+    return c.text('Authentication required', 401);
+  }
+  c.header('content-type', 'text/csv; charset=utf-8');
+  c.header('content-disposition', `attachment; filename="setu-live-${new Date().toISOString().slice(0, 10)}.csv"`);
+  c.header('cache-control', 'no-store');
+  return c.text(eventCsv(store.allLive(Math.floor(Date.now() / 1000))));
+});
+
 // GET /sms-sim — fake-phone demo posting to the webhook below. The simulator
 // key (if any) is typed into the page's own field, never embedded in the
 // HTML. Disabled by default in production — a demo/testing surface has no
@@ -232,6 +278,47 @@ app.post('/api/sms/inbound', async (c) => {
     log: (msg) => console.log('[setu-relay] sms:', msg),
   });
   return c.json(json, status as 200 | 400);
+});
+
+// Attachments are content-addressed and deliberately separate from the signed
+// event stream. They never enter QR/chirp/SMS packets; devices fetch them only
+// after an explicit tap. The hash is verified before storage, making PUT
+// idempotent and preventing a relay from serving bytes different from the
+// event's signed pointer.
+app.put('/api/blob/:hash', async (c) => {
+  if (!blobLimiter.allow(clientKey(c))) {
+    return c.json({ ok: false, error: 'rate limited' }, 429);
+  }
+  const hash = c.req.param('hash');
+  if (!BLOB_HASH_RE.test(hash)) return c.json({ ok: false, error: 'invalid hash' }, 400);
+  const lengthText = c.req.header('content-length');
+  if (!lengthText) return c.json({ ok: false, error: 'content-length required' }, 411);
+  const length = Number(lengthText);
+  if (!Number.isSafeInteger(length) || length < 1 || length > MAX_BLOB_BYTES) {
+    return c.json({ ok: false, error: 'payload too large' }, 413);
+  }
+  const mime = (c.req.header('content-type') ?? 'application/octet-stream').split(';')[0]!.trim();
+  if (!BLOB_MIME.has(mime)) return c.json({ ok: false, error: 'unsupported media type' }, 415);
+  const bytes = Buffer.from(await c.req.arrayBuffer());
+  if (bytes.length !== length || bytes.length > MAX_BLOB_BYTES) {
+    return c.json({ ok: false, error: 'invalid payload length' }, 400);
+  }
+  const actual = createHash('sha256').update(bytes).digest('base64url');
+  if (actual !== hash) return c.json({ ok: false, error: 'hash mismatch' }, 400);
+  const added = store.putAttachment(hash, bytes, mime, Math.floor(Date.now() / 1000));
+  return c.json({ ok: true, added }, added ? 201 : 200);
+});
+
+app.get('/api/blob/:hash', (c) => {
+  const hash = c.req.param('hash');
+  if (!BLOB_HASH_RE.test(hash)) return c.json({ ok: false, error: 'invalid hash' }, 400);
+  const attachment = store.getAttachment(hash);
+  if (!attachment) return c.json({ ok: false, error: 'not found' }, 404);
+  c.header('content-type', attachment.mime);
+  c.header('content-length', String(attachment.bytes.length));
+  c.header('cache-control', 'public, max-age=31536000, immutable');
+  c.header('x-content-type-options', 'nosniff');
+  return c.body(Uint8Array.from(attachment.bytes));
 });
 
 // Read once at boot rather than on every SPA navigation — the file doesn't
