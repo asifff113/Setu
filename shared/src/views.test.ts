@@ -19,12 +19,18 @@ function ev(input: NewEventInput, keypair = kp): SetuEvent {
 }
 
 describe('latestStatusEvents', () => {
-  it('picks the newest checkin/help per author', () => {
+  it('keeps each help event as a case while retaining the latest check-in', () => {
     const a = ev({ t: 'checkin', ts: 1, gh: 'wh0r', st: 'safe' });
     const b = ev({ t: 'help', ts: 2, gh: 'wh0r', st: 'need', cat: 'water' });
     const result = latestStatusEvents([a, b]);
-    expect(result).toHaveLength(1);
+    expect(result).toHaveLength(2);
     expect(result[0]?.id).toBe(b.id);
+  });
+
+  it('does not let a later offer hide an earlier unresolved need', () => {
+    const need = ev({ t: 'help', ts: 1, gh: 'wh0r', st: 'need', cat: 'water' });
+    const offer = ev({ t: 'help', ts: 2, gh: 'wh0r', st: 'offer', cat: 'shelter' });
+    expect(latestStatusEvents([need, offer]).map((event) => event.id)).toEqual([offer.id, need.id]);
   });
 
   it('keeps different authors separate', () => {
@@ -51,9 +57,9 @@ describe('latestStatusEvents', () => {
     // device must derive the identical "latest" from the identical event set.
     const a = ev({ t: 'checkin', ts: 5, gh: 'wh0r', st: 'safe' });
     const b = ev({ t: 'help', ts: 5, gh: 'wh0r', st: 'need', cat: 'water' });
-    const forward = latestStatusEvents([a, b])[0]?.id;
-    const backward = latestStatusEvents([b, a])[0]?.id;
-    expect(forward).toBe(backward);
+    expect(latestStatusEvents([a, b]).map((event) => event.id)).toEqual(
+      latestStatusEvents([b, a]).map((event) => event.id),
+    );
   });
 });
 

@@ -129,3 +129,13 @@ button {
 .leaflet-control-zoom a:hover {
   background: var(--color-surface-2) !important;
 }
+.setu-cluster-label {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+.setu-cluster-label::before {
+  display: none !important;
+}

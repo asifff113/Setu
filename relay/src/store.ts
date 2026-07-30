@@ -198,6 +198,9 @@ export class EventStore {
       if (!row) return true;
       const parent = JSON.parse(row.blob) as SetuEvent;
       if (event.t === 'retract') return parent.au === event.au;
+      if (event.t === 'ack') {
+        return event.ak === 'seen' ? parent.t === 'person' : parent.t === 'help';
+      }
       return parent.t !== 'retract';
     }
     return true;

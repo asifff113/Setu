@@ -274,6 +274,7 @@ describe('event shape / size gate', () => {
     expect(isValidEventShape({ ...e, st: 'bogus' as never })).toBe(false);
     expect(isValidEventShape({ ...e, ttl: Number.MAX_SAFE_INTEGER })).toBe(false);
     expect(isValidEventShape({ ...e, gh: 'not-a-geohash!' })).toBe(false);
+    expect(isValidEventShape({ ...e, injected: true } as never)).toBe(false);
     expect(isValidEventShape(null as never)).toBe(false);
   });
 });

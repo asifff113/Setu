@@ -4,22 +4,22 @@ import { Layout } from './components/Layout';
 import { tryDemo } from './lib/demoTrigger';
 import { BoardScreen } from './screens/BoardScreen';
 import { HomeScreen } from './screens/HomeScreen';
-import { InfoScreen } from './screens/InfoScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
-import { PublishScreen } from './screens/PublishScreen';
-import { SyncScreen } from './screens/SyncScreen';
-import { ChatScreen } from './screens/ChatScreen';
-import { GuideScreen } from './screens/GuideScreen';
-import { HistoryScreen } from './screens/HistoryScreen';
-import { ShareScreen } from './screens/ShareScreen';
-import { CircleScreen } from './screens/CircleScreen';
-import { MediaStorageScreen } from './screens/MediaStorageScreen';
 import { useAppStore } from './store/appStore';
 
 // Leaflet + react-leaflet are the app's heaviest dependency and only the Map
 // screen needs them, so they load as their own chunk on first visit to /map.
 // vite-plugin-pwa precaches every built JS chunk, so this stays offline-safe.
 const MapScreen = lazy(() => import('./screens/MapScreen').then((m) => ({ default: m.MapScreen })));
+const ChatScreen = lazy(() => import('./screens/ChatScreen').then((m) => ({ default: m.ChatScreen })));
+const GuideScreen = lazy(() => import('./screens/GuideScreen').then((m) => ({ default: m.GuideScreen })));
+const HistoryScreen = lazy(() => import('./screens/HistoryScreen').then((m) => ({ default: m.HistoryScreen })));
+const ShareScreen = lazy(() => import('./screens/ShareScreen').then((m) => ({ default: m.ShareScreen })));
+const CircleScreen = lazy(() => import('./screens/CircleScreen').then((m) => ({ default: m.CircleScreen })));
+const MediaStorageScreen = lazy(() => import('./screens/MediaStorageScreen').then((m) => ({ default: m.MediaStorageScreen })));
+const SyncScreen = lazy(() => import('./screens/SyncScreen').then((m) => ({ default: m.SyncScreen })));
+const InfoScreen = lazy(() => import('./screens/InfoScreen').then((m) => ({ default: m.InfoScreen })));
+const PublishScreen = lazy(() => import('./screens/PublishScreen').then((m) => ({ default: m.PublishScreen })));
 
 function ScreenFallback() {
   return (
@@ -65,33 +65,28 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<HomeScreen />} />
-          <Route path="board" element={<BoardScreen />} />
-          <Route path="chat" element={<ChatScreen />} />
-          <Route path="alerts" element={<BoardScreen initialTab="bulletins" />} />
-          <Route
-            path="map"
-            element={
-              <Suspense fallback={<ScreenFallback />}>
-                <MapScreen />
-              </Suspense>
-            }
-          />
-          <Route path="connect" element={<SyncScreen />} />
-          <Route path="more" element={<InfoScreen />} />
-          <Route path="guide" element={<GuideScreen />} />
-          <Route path="history" element={<HistoryScreen />} />
-          <Route path="share" element={<ShareScreen />} />
-          <Route path="circle" element={<CircleScreen />} />
-          <Route path="media" element={<MediaStorageScreen />} />
-          <Route path="sync" element={<Navigate to="/connect" replace />} />
-          <Route path="info" element={<Navigate to="/more" replace />} />
-        </Route>
-        {/* Hidden: not in the tab bar, reached only by typing the URL. */}
-        <Route path="publish" element={<PublishScreen />} />
-      </Routes>
+      <Suspense fallback={<ScreenFallback />}>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route index element={<HomeScreen />} />
+            <Route path="board" element={<BoardScreen />} />
+            <Route path="chat" element={<ChatScreen />} />
+            <Route path="alerts" element={<BoardScreen initialTab="bulletins" />} />
+            <Route path="map" element={<MapScreen />} />
+            <Route path="connect" element={<SyncScreen />} />
+            <Route path="more" element={<InfoScreen />} />
+            <Route path="guide" element={<GuideScreen />} />
+            <Route path="history" element={<HistoryScreen />} />
+            <Route path="share" element={<ShareScreen />} />
+            <Route path="circle" element={<CircleScreen />} />
+            <Route path="media" element={<MediaStorageScreen />} />
+            <Route path="sync" element={<Navigate to="/connect" replace />} />
+            <Route path="info" element={<Navigate to="/more" replace />} />
+          </Route>
+          {/* Hidden: not in the tab bar, reached only by typing the URL. */}
+          <Route path="publish" element={<PublishScreen />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

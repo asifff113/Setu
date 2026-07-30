@@ -8,7 +8,13 @@
  *
  * Zero network: everything here is local CPU + screen.
  */
-import { DEFAULT_CHUNK_SIZE, FALLBACK_CHUNK_SIZE, FountainEncoder, type SetuEvent } from '@setu/shared';
+import {
+  canTransportEvent,
+  DEFAULT_CHUNK_SIZE,
+  FALLBACK_CHUNK_SIZE,
+  FountainEncoder,
+  type SetuEvent,
+} from '@setu/shared';
 import QRCode from 'qrcode';
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../i18n';
@@ -31,7 +37,7 @@ export function BeamSender({ events, onClose }: BeamSenderProps) {
   // Snapshot events once so a parent re-render can't restart the encoder.
   // Area chatter is intentionally relay/local-node/file only: a 24-hour chat
   // stream can crowd safety records out of a QR beam's tiny budget.
-  const [snapshot] = useState(events.filter((event) => event.t !== 'chat'));
+  const [snapshot] = useState(events.filter((event) => canTransportEvent(event, 'qr')));
   const [speed, setSpeed] = useState<Speed>('normal');
   const [phase, setPhase] = useState<'building' | 'ready'>('building');
   const [meta, setMeta] = useState({ k: 0, bytes: 0 });

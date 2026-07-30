@@ -63,12 +63,12 @@ describe('buildMapMarkers', () => {
     expect(markers.find((m) => m.id === found.id)?.color).toBe('safe');
   });
 
-  it('only plots the latest per person, not every historical event', () => {
+  it('plots the latest check-in and each independent help case', () => {
     const a = ev({ t: 'checkin', ts: 1, gh: MIRPUR_GH, st: 'safe' });
     const b = ev({ t: 'help', ts: 2, gh: MIRPUR_GH, st: 'need', cat: 'food' });
     const markers = buildMapMarkers([a, b]);
-    expect(markers).toHaveLength(1);
-    expect(markers[0]?.id).toBe(b.id);
+    expect(markers).toHaveLength(2);
+    expect(markers.map((marker) => marker.id)).toContain(b.id);
   });
 
   it('never plots bulletins', () => {

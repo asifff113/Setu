@@ -17,6 +17,7 @@ import { tryDemo } from '../lib/demoTrigger';
 import { distanceKm } from '../lib/geo';
 import { useAppStore } from '../store/appStore';
 import { useEventsStore } from '../store/eventsStore';
+import { useSyncStore } from '../store/syncStore';
 
 type BoardTab = 'people' | 'help' | 'offers' | 'missing' | 'bulletins';
 type Sort = 'newest' | 'waiting' | 'nearest';
@@ -45,6 +46,7 @@ export function BoardScreen({ initialTab }: { initialTab?: BoardTab }) {
   const events = useEventsStore((state) => state.events);
   const settings = useAppStore((state) => state.settings);
   const updateSettings = useAppStore((state) => state.updateSettings);
+  const resync = useSyncStore((state) => state.resync);
   const [tab, setTab] = useState<BoardTab>(initialTab ?? 'help');
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState<'all' | 'area' | 'circle'>('all');
@@ -180,9 +182,12 @@ export function BoardScreen({ initialTab }: { initialTab?: BoardTab }) {
           <h1 className="text-xl font-bold text-ink">{t('requestsTitle')}</h1>
           <p className="text-xs text-muted">{t('requestsHint')}</p>
         </div>
-        <Link to="/map" className="rounded-xl border border-line bg-surface px-3 py-2 text-sm font-semibold text-accent">
-          🗺 {t('mapTitle')}
-        </Link>
+        <div className="flex gap-2">
+          <button type="button" aria-label={t('refresh')} onClick={resync} className="rounded-xl border border-line bg-surface px-3 py-2 text-sm font-semibold text-accent">↻</button>
+          <Link to="/map" className="rounded-xl border border-line bg-surface px-3 py-2 text-sm font-semibold text-accent">
+            🗺 {t('mapTitle')}
+          </Link>
+        </div>
       </div>
       <CoachMark id="requests">{t('coachRequests')}</CoachMark>
 

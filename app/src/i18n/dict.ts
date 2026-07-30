@@ -14,6 +14,7 @@ export const dict = {
   send: { bn: 'পাঠান', en: 'Send' },
   close: { bn: 'বন্ধ করুন', en: 'Close' },
   search: { bn: 'খুঁজুন', en: 'Search' },
+  refresh: { bn: 'নতুন তথ্য আনুন', en: 'Refresh updates' },
   errorGeneric: {
     bn: 'কিছু একটা ভুল হয়েছে — আবার চেষ্টা করুন।',
     en: 'Something went wrong — please try again.',
@@ -326,6 +327,11 @@ export const dict = {
 
   // Map
   mapTitle: { bn: 'ম্যাপ', en: 'Map' },
+  mapPins: { bn: 'পিন', en: 'Pins' },
+  mapAreas: { bn: 'এলাকার চাহিদা', en: 'Needs by area' },
+  mapAreasTitle: { bn: 'এলাকাভিত্তিক সক্রিয় রিপোর্ট', en: 'Active reports by area' },
+  mapAreasHint: { bn: 'সবচেয়ে বেশি রিপোর্টের এলাকা আগে দেখানো হয়েছে।', en: 'Areas with the most active reports appear first.' },
+  coachMap: { bn: 'শুধু যেসব আপডেটে এলাকা বা অবস্থান আছে সেগুলো এখানে দেখা যায়।', en: 'Only updates with an area or shared location appear here.' },
   mapLegendSafe: { bn: 'নিরাপদ / পাওয়া গেছে', en: 'Safe / found' },
   mapLegendNeed: { bn: 'সাহায্য দরকার / নিখোঁজ', en: 'Need help / missing' },
   mapNoData: { bn: 'এখনও কোনো অবস্থান-ভিত্তিক রিপোর্ট নেই।', en: 'No location-based reports yet.' },
@@ -338,6 +344,11 @@ export const dict = {
     en: 'The full map comes back once you have a connection.',
   },
   mapReportsSuffix: { bn: 'টি রিপোর্ট', en: 'reports' },
+  mapClusterReports: { bn: 'টি কাছাকাছি রিপোর্ট', en: 'reports nearby' },
+  mapClusterHint: {
+    bn: 'আলাদা রিপোর্ট খুলতে ম্যাপ বড় করুন।',
+    en: 'Zoom in to open individual cases.',
+  },
 
   // /publish — hidden bulletin composer
   publishTitle: { bn: 'বুলেটিন প্রকাশ করুন', en: 'Publish bulletin' },
@@ -434,6 +445,18 @@ export const dict = {
     bn: 'ফোন ছাড়াই ব্রাউজারে পরীক্ষা করতে চান? রিলের /sms-sim পাতা দেখুন।',
     en: 'Want to try it without a phone? See the relay’s /sms-sim page.',
   },
+  infoSmsShare: { bn: 'এসএমএস নির্দেশনা শেয়ার করুন', en: 'Share SMS instruction' },
+  faqTitle: { bn: 'সাধারণ প্রশ্ন', en: 'Common questions' },
+  faqOfflineQ: { bn: 'ইন্টারনেট ছাড়া কি কাজ করে?', en: 'Does it work without internet?' },
+  faqOfflineA: { bn: 'হ্যাঁ। আপডেট প্রথমে এই ফোনে থাকে। পরে QR, শব্দ, ফাইল, স্থানীয় Wi-Fi, SMS বা রিলে দিয়ে অন্য ফোনে যায়।', en: 'Yes. Updates stay on this phone first, then move by QR, sound, file, local Wi-Fi, SMS, or relay.' },
+  faqNameQ: { bn: 'আমার নাম কে দেখতে পাবে?', en: 'Who can see my name?' },
+  faqNameA: { bn: 'আপনার আপডেট পাওয়া যেকোনো Setu ডিভাইস নামটি দেখতে পারে। প্রয়োজন হলে ডাকনাম ব্যবহার করুন; সঠিক বাড়ির ঠিকানা লিখবেন না।', en: 'Any Setu device that receives your update can see the name. Use a nickname if needed and avoid an exact home address.' },
+  faqDeleteQ: { bn: 'কিছু কীভাবে মুছব?', en: 'How do I delete something?' },
+  faqDeleteA: { bn: 'নিজের কার্ড খুলে মুছুন চাপুন। একটি স্বাক্ষরিত প্রত্যাহার পাঠানো হবে। আগে সিঙ্ক করা অফলাইন ফোনে মেয়াদ শেষ হওয়া পর্যন্ত কপি থাকতে পারে।', en: 'Open your card and tap Delete. Setu sends a signed retraction; offline devices that already synced it may retain a copy until expiry.' },
+  faqBadgesQ: { bn: '✓ এবং ⚠ কী বোঝায়?', en: 'What do ✓ and ⚠ mean?' },
+  faqBadgesA: { bn: '✓ পিন করা যাচাইকৃত প্রকাশক বা সঠিক ডিভাইস স্বাক্ষর বোঝায়। ⚠ স্বাক্ষর সঠিক হলেও প্রকাশক যাচাইকৃত নয়—সতর্ক থাকুন।', en: '✓ indicates a pinned publisher or valid device signature. ⚠ means the signature is valid but the publisher is not verified—use caution.' },
+  faqResolveQ: { bn: '“সমাধান হয়েছে” মানে কি মুছে গেছে?', en: 'Does “Resolved” mean deleted?' },
+  faqResolveA: { bn: 'না। এটি অনুরোধটিকে সম্পন্ন বিভাগে রাখে যাতে অন্যরা অযথা সাড়া না দেয়। ৭২ ঘণ্টার মেয়াদ শেষে এটি বোর্ড থেকে মিলিয়ে যায়।', en: 'No. It moves the case into Done so responders do not duplicate work. It fades from boards when its 72-hour lifetime ends.' },
 
   infoTrustTitle: { bn: 'ব্যাজ কী বোঝায়', en: 'What the badges mean' },
   infoTrustVerified: {

@@ -29,6 +29,14 @@ const TRUST_ROWS: { icon: string; tint: string; descKey: DictKey }[] = [
   { icon: '📟', tint: 'text-muted', descKey: 'infoTrustSms' },
 ];
 
+const FAQ: Array<[DictKey, DictKey]> = [
+  ['faqOfflineQ', 'faqOfflineA'],
+  ['faqNameQ', 'faqNameA'],
+  ['faqDeleteQ', 'faqDeleteA'],
+  ['faqBadgesQ', 'faqBadgesA'],
+  ['faqResolveQ', 'faqResolveA'],
+];
+
 const REPO_URL = 'https://github.com/asifff113/Setu';
 
 export function InfoScreen() {
@@ -200,6 +208,18 @@ export function InfoScreen() {
         )}
       </section>
 
+      <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('faqTitle')}</p>
+        <div className="mt-3 flex flex-col divide-y divide-line">
+          {FAQ.map(([question, answer]) => (
+            <details key={question} className="py-3">
+              <summary className="cursor-pointer text-sm font-semibold text-ink">{t(question)}</summary>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{t(answer)}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
       <section className="grid grid-cols-2 gap-3">
         {[
           ['/guide', '🛟', 'moreGuide'],
@@ -300,8 +320,22 @@ export function InfoScreen() {
         <ul className="mt-3 flex flex-col gap-2">
           {SMS_COMMANDS.map((cmd) => (
             <li key={cmd.example} className="rounded-xl bg-surface-2 px-3 py-2">
-              <p className="text-xs text-muted">{t(cmd.labelKey)}</p>
-              <p className="mt-0.5 break-all font-mono text-xs text-ink">{cmd.example}</p>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs text-muted">{t(cmd.labelKey)}</p>
+                  <p className="mt-0.5 break-all font-mono text-xs text-ink">{cmd.example}</p>
+                </div>
+                <button
+                  type="button"
+                  aria-label={t('infoSmsShare')}
+                  onClick={() => void (navigator.share
+                    ? navigator.share({ text: cmd.example })
+                    : navigator.clipboard.writeText(cmd.example))}
+                  className="shrink-0 rounded-lg bg-surface px-2 py-2 text-xs font-semibold text-accent"
+                >
+                  ↗
+                </button>
+              </div>
             </li>
           ))}
         </ul>

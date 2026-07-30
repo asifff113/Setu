@@ -52,6 +52,8 @@ interface SyncState {
   disconnectNode: () => void;
   /** Broadcast freshly-created local events to the relay. */
   push: (events: SetuEvent[]) => void;
+  /** Ask the active link to reconcile immediately (manual refresh). */
+  resync: () => void;
   /** Recompute event count + storage estimate. */
   refreshStats: () => Promise<void>;
 }
@@ -180,6 +182,10 @@ export const useSyncStore = create<SyncState>((set, get) => {
 
     push: (events) => {
       relay?.push(events);
+    },
+
+    resync: () => {
+      relay?.resync();
     },
 
     refreshStats: async () => {

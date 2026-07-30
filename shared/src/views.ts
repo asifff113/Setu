@@ -85,11 +85,15 @@ export function isRetracted(events: readonly SetuEvent[], id: string): boolean {
 /** Replies and acknowledgements for one parent, oldest first. */
 export function threadFor(events: readonly SetuEvent[], id: string): SetuEvent[] {
   const retracted = validRetractionIds(events);
+  const parent = events.find((event) => event.id === id);
   return events
     .filter((event) =>
       (event.t === 'reply' || event.t === 'ack') &&
       event.re === id &&
-      !retracted.has(event.id))
+      !retracted.has(event.id) &&
+      (event.t !== 'ack' ||
+        !parent ||
+        (event.ak === 'seen' ? parent.t === 'person' : parent.t === 'help')))
     .sort((a, b) => a.ts - b.ts || a.id.localeCompare(b.id));
 }
 
@@ -108,13 +112,24 @@ export function eventView(events: readonly SetuEvent[], event: SetuEvent): SetuE
   };
 }
 
-/** One card per person: their latest checkin/help event, newest first. */
+/**
+ * Latest check-in per person plus every independent help/offer case.
+ *
+ * Help requests used to be collapsed by author alongside check-ins, which
+ * meant posting a second need (or an offer) silently hid the first unresolved
+ * case. Once help becomes actionable/threaded, each signed help event is its
+ * own case and remains visible until its own lifecycle closes.
+ */
 export function latestStatusEvents(events: readonly SetuEvent[]): SetuEventView[] {
   const retracted = validRetractionIds(events);
-  return latestByKey(
-    events.filter((e) => (e.t === 'checkin' || e.t === 'help') && !retracted.has(e.id)),
+  const checkins = latestByKey(
+    events.filter((event) => event.t === 'checkin' && !retracted.has(event.id)),
     personKey,
-  ).map((event) => eventView(events, event));
+  );
+  const cases = events.filter((event) => event.t === 'help' && !retracted.has(event.id));
+  return [...checkins, ...cases]
+    .sort((a, b) => b.ts - a.ts || b.id.localeCompare(a.id))
+    .map((event) => eventView(events, event));
 }
 
 /** One card per missing/found person: their latest person event, newest first. */

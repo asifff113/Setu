@@ -35,6 +35,10 @@ const encoder = new Encoder({ useRecords: false, variableMapSize: true });
 
 /** Fields that never participate in the content hash. */
 const VIEW_KEYS = ['resolved', 'responders', 'replies', 'retracted'];
+const EVENT_KEYS = new Set([
+  'v', 't', 'id', 'ts', 'ttl', 'gh', 'au', 'n', 'st', 'cat', 'msg', 'loc',
+  'pn', 'pst', 're', 'ak', 'att', 'urg', 'sev', 'src', 'x', 'sig',
+]);
 const NON_CONTENT_KEYS = new Set(['id', 'sig', ...VIEW_KEYS]);
 const NON_SIGNED_KEYS = new Set(['sig', ...VIEW_KEYS]);
 
@@ -196,6 +200,7 @@ function utf8Length(text: string): number {
 export function isValidEventShape(event: SetuEvent): boolean {
   if (!event || typeof event !== 'object') return false;
   if (VIEW_KEYS.some((key) => key in (event as unknown as Record<string, unknown>))) return false;
+  if (Object.keys(event).some((key) => !EVENT_KEYS.has(key))) return false;
   if (event.v !== 1) return false;
   if (typeof event.t !== 'string' || !EVENT_TYPES.has(event.t)) return false;
   if (typeof event.id !== 'string' || event.id.length !== 22 || !B64URL_RE.test(event.id)) return false;
@@ -254,7 +259,7 @@ export function isValidEventShape(event: SetuEvent): boolean {
   ) return false;
   if (
     event.t === 'bulletin' &&
-    (event.msg === undefined || event.st !== undefined || event.cat !== undefined ||
+    (event.msg === undefined || event.msg.trim().length === 0 || event.st !== undefined || event.cat !== undefined ||
       event.pn !== undefined || event.pst !== undefined || event.re !== undefined ||
       event.ak !== undefined || event.urg !== undefined)
   ) return false;
