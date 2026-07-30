@@ -222,6 +222,7 @@ export function InfoScreen() {
 
       <section className="grid grid-cols-2 gap-3">
         {[
+          ['/manual', '📘', 'moreManual'],
           ['/guide', '🛟', 'moreGuide'],
           ['/history', '🕘', 'moreHistory'],
           ['/circle', '👨‍👩‍👧', 'moreCircle'],

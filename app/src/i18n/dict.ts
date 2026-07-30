@@ -70,8 +70,25 @@ export const dict = {
   btnSafe: { bn: 'আমি নিরাপদ', en: "I'm safe" },
   btnHelp: { bn: 'সাহায্য দরকার', en: 'Need help' },
   btnReportPerson: { bn: 'নিখোঁজ / পাওয়া গেছে রিপোর্ট করুন', en: 'Report missing / found person' },
+  btnReportPersonHint: {
+    bn: 'কাউকে খুঁজে পাচ্ছেন না, বা পেয়েছেন',
+    en: 'Someone missing, or now found',
+  },
   btnOffer: { bn: 'আমি সাহায্য দিতে পারি', en: 'I can offer help' },
+  btnOfferHint: {
+    bn: 'খাবার, পানি, আশ্রয় বা পরিবহন',
+    en: 'Food, water, shelter, or transport',
+  },
   homeSafeNudge: { bn: 'একবার “আমি নিরাপদ” চাপুন, যাতে পরিবার আপনাকে এখানে খুঁজে পায়। পরে যেকোনো সময় আপডেট করতে পারবেন।', en: 'Tap “I’m safe” once so family can find you here. You can update it anytime.' },
+  homeStatusSafeTitle: { bn: 'আপনি নিরাপদ হিসেবে চিহ্নিত', en: "You're marked safe" },
+  homeStatusNeedTitle: { bn: 'আপনার সাহায্যের অনুরোধ চালু আছে', en: 'Your help request is live' },
+  homeStatusOfferTitle: { bn: 'আপনার সহায়তার প্রস্তাব চালু আছে', en: 'Your offer to help is live' },
+  homeQuickTitle: { bn: 'দ্রুত কাজ', en: 'Quick actions' },
+  homeGlanceTitle: { bn: 'এখন যা চলছে', en: 'Live right now' },
+  homeGlanceAll: { bn: 'সব এলাকা', en: 'All areas' },
+  homeGlanceNeeds: { bn: 'খোলা অনুরোধ', en: 'Open requests' },
+  homeGlanceSafe: { bn: 'নিরাপদ জানিয়েছে', en: 'Marked safe' },
+  homeGlanceAlerts: { bn: 'সতর্কতা', en: 'Alerts' },
 
   helpSheetTitle: { bn: 'কী ধরনের সাহায্য দরকার?', en: 'What kind of help is needed?' },
   offerSheetTitle: { bn: 'আপনি কী ধরনের সাহায্য দিতে পারেন?', en: 'What help can you offer?' },
@@ -588,6 +605,87 @@ export const dict = {
 
   // Time
   justNow: { bn: 'এইমাত্র', en: 'just now' },
+
+  // How-to-use manual
+  moreManual: { bn: 'ব্যবহার নির্দেশিকা', en: 'How to use Setu' },
+  coachManual: {
+    bn: 'নতুন এখানে? পুরো অ্যাপ কীভাবে ব্যবহার করবেন তার ধাপে ধাপে নির্দেশিকা আছে —',
+    en: "New here? There's a step-by-step guide to using the whole app —",
+  },
+  manualTitle: { bn: 'সেতু যেভাবে ব্যবহার করবেন', en: 'How to use Setu' },
+  manualIntro: {
+    bn: 'নতুন কিছু আপডেট হলেও অ্যাপ ব্যবহার করা সহজ থাকে — নিচের যেকোনো বিষয়ে চাপুন।',
+    en: 'Even as new features are added, using Setu stays simple — tap any topic below.',
+  },
+  manualOffline: {
+    bn: 'এই নির্দেশিকাটি আগে থেকেই ফোনে রাখা থাকে এবং ইন্টারনেট বা বিমান মোডেও খোলে।',
+    en: 'This guide is precached on your phone and opens even offline or in airplane mode.',
+  },
+
+  manualStartTitle: { bn: '১. দ্রুত চেক-ইন করুন', en: '1. Quick check-in' },
+  manualStartBody: {
+    bn: 'হোম ট্যাবে গিয়ে “আমি নিরাপদ” চাপুন — এটিই সবচেয়ে জরুরি প্রথম কাজ।\nসাহায্য দরকার হলে “সাহায্য দরকার” চাপুন, ধরন (ওষুধ/উদ্ধার/খাবার/পানি/আশ্রয়/অন্যান্য) ও জরুরিতা বেছে নিন, চাইলে অবস্থান যুক্ত করুন।\nকাউকে খুঁজে না পেলে বা কাউকে খুঁজে পেলে “নিখোঁজ/পাওয়া গেছে রিপোর্ট করুন” ব্যবহার করুন।\nসাহায্য করতে পারলে “আমি সাহায্য দিতে পারি” চেপে প্রস্তাব পাঠান।\nযেকোনো সময় বোতাম আবার চেপে অবস্থা হালনাগাদ করা যায় — পুরোনোটা মুছে যায় না, শুধু “আমার ইতিহাসে” সরে যায়।',
+    en: 'Open the Home tab and tap “I\'m safe” first — the single most useful thing to do.\nNeed help? Tap “Need help”, pick a category (medical/rescue/food/water/shelter/other) and urgency, and attach your location if you can.\nUse “Report missing / found person” when someone can\'t be found, or has been found.\nCan you help someone? Tap “I can offer help” to publish an offer.\nYou can update your status anytime by tapping a button again — nothing is overwritten, the old post just moves into “My history”.',
+  },
+
+  manualBoardTitle: { bn: '২. বোর্ড দেখা ও সাড়া দেওয়া', en: '2. Reading and responding on the Board' },
+  manualBoardBody: {
+    bn: 'রিকোয়েস্ট ট্যাবে মানুষ, সাহায্য, নিখোঁজ, সহায়তার প্রস্তাব ও বুলেটিন — আলাদা তালিকায় দেখা যায়।\nওপরের ফিল্টার দিয়ে “আমার এলাকা”, “আমার সার্কেল” বা “সব” বেছে নিন; নাম বা এলাকা দিয়েও খোঁজা যায়।\n“জরুরি ও নতুন”, “সবচেয়ে বেশি অপেক্ষা” বা “সবচেয়ে কাছে” — এই তিন ধরনে সাজানো যায়।\nযেকোনো কার্ডে চাপ দিলে বিস্তারিত, কথোপকথন ও “আমি আসছি” / “কাজ শেষ”-এর মতো বোতাম দেখা যায়।\nপ্রয়োজন সত্যিই পূরণ হলেই “কাজ শেষ” চাপুন — এটি সমাধান হয়েছে অংশে সরায়, মুছে ফেলে না।\nরিকোয়েস্ট ট্যাবের ওপরে 🗺 বোতাম চেপে সব রিপোর্ট ম্যাপে বা এলাকাভিত্তিক তালিকায় দেখা যায়।',
+    en: 'The Requests tab shows People, Help, Missing, Offers, and Bulletins as separate lists.\nUse the filters at the top for “My area”, “My Circle”, or “All”; you can also search by name or area.\nSort by “Urgent & newest”, “Oldest waiting”, or “Nearest”.\nTap any card to see details, the conversation, and buttons like “I\'m on this” / “Mark done”.\nOnly tap “Mark done” once the need is actually met — it moves the case to Resolved, it doesn\'t delete it.\nTap the 🗺 button above the Requests tab to see every report on a map or grouped by area.',
+  },
+
+  manualChatTitle: { bn: '৩. এলাকার চ্যাট', en: '3. Area chat' },
+  manualChatBody: {
+    bn: 'চ্যাট খুলতে আগে প্রোফাইলে একটি জেলা/এলাকা বেছে নিতে হবে — “আরও → আমার প্রোফাইল” থেকে করা যায়।\nপ্রতিটি এলাকার একটি খোলা চ্যানেল আছে, যেখানে রাস্তা বন্ধ, আশ্রয়কেন্দ্র বা সমন্বয়ের খবর শেয়ার করা যায়।\nপুরোনো বার্তা ২৪ ঘণ্টা পর নিজে থেকেই মুছে যায়, তাই এখানে ব্যক্তিগত তথ্য না দেওয়াই ভালো।',
+    en: 'Chat needs an area first — set your district/area under “More → My profile”.\nEach area has one open channel for sharing road closures, shelter info, or coordination updates.\nOlder messages expire automatically after 24 hours, so avoid sharing private details there.',
+  },
+
+  manualAlertsTitle: { bn: '৪. সতর্কতা ও বিশ্বাসযোগ্যতা', en: '4. Alerts and trust badges' },
+  manualAlertsBody: {
+    bn: 'সতর্কতা ট্যাবে সংস্থার বুলেটিন দেখা যায় — তথ্য, সতর্কতা বা বিপদ, এই তিন মাত্রায়।\n✓ চিহ্ন মানে যাচাইকৃত প্রকাশকের স্বাক্ষর; ⚠ মানে স্বাক্ষর ঠিক আছে কিন্তু প্রকাশক পিন করা নয় — এমন খবর সতর্কতার সাথে বিশ্বাস করুন।\n📟 চিহ্নযুক্ত আপডেট এসএমএস গেটওয়ে থেকে এসেছে, কোনো ডিভাইসের স্বাক্ষর নেই।',
+    en: 'The Alerts tab shows official bulletins at three severities: info, warning, or danger.\n✓ means a verified publisher\'s signature; ⚠ means the signature is valid but the publisher isn\'t pinned — trust those with caution.\n📟 marks an update that came through the SMS gateway, not signed by any device.',
+  },
+
+  manualSyncTitle: { bn: '৫. ইন্টারনেট না থাকলেও সিঙ্ক করা', en: '5. Staying in sync without internet' },
+  manualSyncBody: {
+    bn: 'ইন্টারনেট থাকলে অ্যাপ নিজে থেকেই ক্লাউড রিলের সাথে যুক্ত হয় ও লাইভ সিঙ্ক করে — কিছু করতে হয় না।\nএকই ওয়াই-ফাই/হটস্পটে ল্যাপটপ থাকলে “সংযোগ ও অফলাইন শেয়ার → স্থানীয় নোডে যুক্ত হোন”-এ ঠিকানা টাইপ করুন বা QR স্ক্যান করুন।\nকোনো নেটওয়ার্কই না থাকলে 🔦 বিম (QR) দিয়ে দুই ফোনের ক্যামেরা ও স্ক্রিন মুখোমুখি ধরে সরাসরি ইভেন্ট আদান-প্রদান করুন।\nক্যামেরা কাজ না করলে 🔊 চির্প দিয়ে শব্দের মাধ্যমে সর্বশেষ চেক-ইন পাঠান বা শুনুন।\n📄 ফাইল কার্ড দিয়ে ইভেন্ট একটি .setu ফাইলে রপ্তানি করে ব্লুটুথ/USB/মেসেজিং অ্যাপে পাঠানো যায়, অন্য ফোনে আমদানি করা যায়।\nস্মার্টফোন নেই এমন কারো জন্য — “আরও” পাতায় SAFE, HELP, MISSING, FOUND, FIND, OFFER-এর মতো এসএমএস কমান্ডের তালিকা আছে।',
+    en: 'With internet, the app connects to the cloud relay and live-syncs automatically — nothing to do.\nIf a laptop is running on the same Wi-Fi/hotspot, go to “Connection & offline sharing → Connect to local node”, then type its address or scan its QR.\nNo network at all? Use 🔦 Beam (QR) — hold two phones\' camera and screen facing each other to exchange events directly.\nCamera not working? Use 🔊 Chirp to send or listen for the latest check-in as sound.\nThe 📄 File card exports events to a .setu file you can send over Bluetooth, USB, or any messaging app, and import on another phone.\nFor anyone without a smartphone, the More page lists SMS commands like SAFE, HELP, MISSING, FOUND, FIND, and OFFER.',
+  },
+
+  manualCircleTitle: { bn: '৬. আমার সার্কেল তৈরি করুন', en: '6. Build your Circle' },
+  manualCircleBody: {
+    bn: 'সামনাসামনি দেখা হলে “আমার সার্কেল”-এ গিয়ে একে অপরের QR কোড স্ক্যান করুন — কোনো অ্যাকাউন্ট বা ফোন নম্বর লাগে না।\nসার্কেলে থাকা মানুষদের সর্বশেষ অবস্থা হোম স্ক্রিনে ও বোর্ডের “আমার সার্কেল” ফিল্টারে আলাদাভাবে দেখা যায়।\nযেকোনো সময় তালিকা থেকে কাউকে সরিয়ে দেওয়া যায়।',
+    en: 'When you meet someone in person, open “My Circle” and scan each other\'s QR code — no account or phone number needed.\nCircle members\' latest status shows on the Home screen and in the Board\'s “My Circle” filter.\nYou can remove anyone from the list at any time.',
+  },
+
+  manualHistoryTitle: { bn: '৭. আমার ইতিহাস', en: '7. My history' },
+  manualHistoryBody: {
+    bn: '“আমার ইতিহাস”-এ আপনার পাঠানো প্রতিটি চেক-ইন, অনুরোধ ও রিপোর্ট থাকে — মেয়াদ শেষ হওয়ার পরেও।\nমেয়াদ শেষ হওয়া বা সমাধান হওয়া কোনো পোস্ট এখনো প্রাসঙ্গিক হলে “আবার প্রকাশ করুন” চেপে নতুন করে পাঠানো যায়।',
+    en: '“My history” keeps every check-in, request, and report you\'ve ever sent — even after it expires.\nIf an expired or resolved post is still relevant, tap “Publish again” to send it fresh.',
+  },
+
+  manualMediaTitle: { bn: '৮. ছবি ও ভয়েস স্টোরেজ সামলানো', en: '8. Managing photo & voice storage' },
+  manualMediaBody: {
+    bn: 'ছবি ও ভয়েস নোট এই ফোনে ক্যাশ হিসেবে জমা থাকে যাতে অফলাইনেও খোলা যায়।\n“ছবি ও ভয়েস স্টোরেজ”-এ কতগুলো ফাইল কতটা জায়গা নিচ্ছে তা দেখা যায় এবং প্রয়োজনে সব একসাথে মুছে ফেলা যায়।\nক্যাশ মুছলেও স্বাক্ষরিত কথোপকথন ও ইতিহাস থেকে যায় — শুধু ফাইলটি আর অফলাইনে খোলা যাবে না।',
+    en: 'Photos and voice notes are cached on this phone so they still open offline.\n“Media storage” shows how many files and how much space they use, and lets you delete them all at once.\nClearing the cache keeps the signed conversation and history — the file just won\'t open offline anymore.',
+  },
+
+  manualShareTitle: { bn: '৯. অন্যদের কাছে সেতু পৌঁছে দিন', en: '9. Install and share Setu' },
+  manualShareBody: {
+    bn: 'ব্রাউজারের ঠিকানা বারের ইনস্টল আইকনে চাপুন, অথবা “আরও → সেতু শেয়ার” থেকে লিংক পাঠান, যাতে অন্যরাও হোম স্ক্রিনে যোগ করতে পারে।\nএকবার ইনস্টল হয়ে গেলে অ্যাপটি ইন্টারনেট ছাড়াও খোলে ও কাজ করে — বারবার ডাউনলোডের দরকার হয় না।\nআইফোনে Safari-এর Share বোতাম চেপে “Add to Home Screen” বেছে নিতে হবে।',
+    en: 'Tap the install icon in the browser address bar, or send the link from “More → Share Setu”, so others can add it to their home screen too.\nOnce installed, the app opens and works without internet — no repeated downloads needed.\nOn iPhone, tap Safari\'s Share button and choose “Add to Home Screen”.',
+  },
+
+  manualSettingsTitle: { bn: '১০. প্রোফাইল ও অ্যাক্সেসিবিলিটি', en: '10. Profile and accessibility' },
+  manualSettingsBody: {
+    bn: '“আরও → আমার প্রোফাইল”-এ গিয়ে নাম, জেলা ও এলাকা যেকোনো সময় বদলানো যায়।\nভাষা বদলাতে ওপরের ডান কোণের বাংলা/English বোতাম চাপুন।\nডার্ক মোড, ব্যাটারি সেভার, বড় লেখা ও রেসপন্ডার মোড — এই সবই “আরও” পাতার নিচের দিকে চালু/বন্ধ করা যায়।',
+    en: 'Go to “More → My profile” to change your name, district, or area anytime.\nTap the বাংলা/English button in the top-right corner to switch language.\nDark mode, battery saver, large text, and responder mode all live near the bottom of the More page.',
+  },
+
+  manualMoreHint: {
+    bn: 'আরও প্রশ্ন থাকলে “আরও” পাতার “সাধারণ প্রশ্ন” অংশ দেখুন, আর বিপর্যয়ের সময়ের করণীয় জানতে “জরুরি গাইড” খুলুন।',
+    en: 'More questions? See “Common questions” on the More page, and open “Emergency guide” for what to do during a disaster.',
+  },
 } as const satisfies Record<string, Entry>;
 
 export type DictKey = keyof typeof dict;

@@ -19,6 +19,7 @@ const CircleScreen = lazy(() => import('./screens/CircleScreen').then((m) => ({ 
 const MediaStorageScreen = lazy(() => import('./screens/MediaStorageScreen').then((m) => ({ default: m.MediaStorageScreen })));
 const SyncScreen = lazy(() => import('./screens/SyncScreen').then((m) => ({ default: m.SyncScreen })));
 const InfoScreen = lazy(() => import('./screens/InfoScreen').then((m) => ({ default: m.InfoScreen })));
+const ManualScreen = lazy(() => import('./screens/ManualScreen').then((m) => ({ default: m.ManualScreen })));
 const PublishScreen = lazy(() => import('./screens/PublishScreen').then((m) => ({ default: m.PublishScreen })));
 
 function ScreenFallback() {
@@ -71,11 +72,13 @@ export default function App() {
             <Route index element={<HomeScreen />} />
             <Route path="board" element={<BoardScreen />} />
             <Route path="chat" element={<ChatScreen />} />
+            <Route path="people" element={<BoardScreen initialTab="people" />} />
             <Route path="alerts" element={<BoardScreen initialTab="bulletins" />} />
             <Route path="map" element={<MapScreen />} />
             <Route path="connect" element={<SyncScreen />} />
             <Route path="more" element={<InfoScreen />} />
             <Route path="guide" element={<GuideScreen />} />
+            <Route path="manual" element={<ManualScreen />} />
             <Route path="history" element={<HistoryScreen />} />
             <Route path="share" element={<ShareScreen />} />
             <Route path="circle" element={<CircleScreen />} />
