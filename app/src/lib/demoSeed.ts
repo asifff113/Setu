@@ -6,43 +6,31 @@
  * All but one event are signed here, on the visitor's own device, with a pool
  * of fixed demo keypairs — exactly like any other Setu event, just synthetic.
  * Each synthetic event gets its *own* key so the per-author board dedup (see
- * views.ts personKey) still shows them as distinct people; deriving the pool
- * from fixed seeds just makes the author set known (DEMO_AUTHORS), which lets
- * the sync layer recognize demo events and keep them strictly on-device (see
- * isDemoEvent + the syncStore hooks) — a public demo URL must never push
- * per-visitor demo noise onto the shared relay. The one verified bulletin is a
- * fixed, pre-signed literal signed by the real pinned demo-publisher key (see
- * shared/src/publishers.ts) so it renders the ✓ badge; that secret must never
- * ship in application code. It carries a 5-year ttl so the pre-baked timestamp
- * never goes stale, and isDemoEvent matches it by id.
+ * views.ts personKey) still shows them as distinct people; the pool (shared/src/demo.ts)
+ * is derived from fixed seeds so the author set is known (DEMO_AUTHORS), which
+ * lets both the app's sync layer (isDemoEvent + the syncStore hooks) and the
+ * relay itself keep these events strictly out of the shared store — a public
+ * demo URL must never push per-visitor demo noise onto a real board. The one
+ * verified bulletin is a fixed, pre-signed literal signed by the real pinned
+ * demo-publisher key (see shared/src/publishers.ts) so it renders the ✓ badge;
+ * that secret is not present in this repo (see publishers.ts). It carries a
+ * 5-year ttl so the pre-baked timestamp never goes stale — which is also why
+ * `seedDemo` (eventsStore.ts) writes it straight to IndexedDB instead of
+ * through `ingestEvents`: that path's shape gate caps `ttl` at 7 days for
+ * events arriving from the network, and this synthetic literal is trusted
+ * local data, not something crossing an ingest trust boundary.
  */
 import {
   createEvent,
+  DEMO_AUTHORS,
+  DEMO_BULLETIN_ID,
+  DEMO_KEYPAIRS,
   findAreaByCode,
-  publicKeyFromSecret,
-  pubkeyToAuthor,
-  sha256Bytes,
-  type Keypair,
   type NewEventInput,
   type SetuEvent,
 } from '@setu/shared';
 
-// A pool of distinct, deterministic demo keypairs — one per synthetic event.
-// Throwaway data with no security role: each demo "person" needs its own author
-// key so views.ts groups them as separate cards (exactly as unique per-event
-// throwaway keys did before), while deriving from fixed seeds makes the author
-// set stable and enumerable so sync can exclude it. A hashed label yields a
-// valid 32-byte ed25519 seed per index.
-function demoKeypair(index: number): Keypair {
-  const secretKey = sha256Bytes(new TextEncoder().encode(`setu-demo-seed-v1:${index}`));
-  return { secretKey, publicKey: publicKeyFromSecret(secretKey) };
-}
-const DEMO_KEYPAIRS: Keypair[] = Array.from({ length: 16 }, (_, i) => demoKeypair(i));
-
-/** Author keys of every synthetic demo event (never a real user's key). */
-export const DEMO_AUTHORS: ReadonlySet<string> = new Set(
-  DEMO_KEYPAIRS.map((kp) => pubkeyToAuthor(kp.publicKey)),
-);
+export { DEMO_AUTHORS, DEMO_BULLETIN_ID };
 
 const MIRPUR = findAreaByCode('mirpur')!;
 const FENI = findAreaByCode('feni')!;
@@ -62,9 +50,6 @@ const VERIFIED_BULLETIN: SetuEvent = {
   id: 'drNkEdIEOz7mEEvoyLbPEA',
   sig: 'iVA2ARsZjPa6h-cmUVGfxZZIvkNnW6OumwhQ4k62JITVJmIRy-jx05i1db45TG-GUdzz0ggSs1xHFawqwV37AQ',
 };
-
-/** Marker used to detect a demo seed already loaded in the local store. */
-export const DEMO_BULLETIN_ID = VERIFIED_BULLETIN.id;
 
 const HOUR = 3600;
 const MIN = 60;

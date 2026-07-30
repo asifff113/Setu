@@ -1,8 +1,10 @@
 import {
   bulletinEvents,
   bulletinTrust,
+  isValidEventShape,
   latestPersonEvents,
   latestStatusEvents,
+  MAX_TTL_SECONDS,
   verifyEvent,
 } from '@setu/shared';
 import { describe, expect, it } from 'vitest';
@@ -72,5 +74,22 @@ describe('demo seed', () => {
     // Same shape as a demo event but a different author + id => must sync.
     const realish = { ...buildDemoEvents()[2]!, au: 'someRealUserAuthorKeyBase64url', id: 'realid' };
     expect(isDemoEvent(realish)).toBe(false);
+  });
+
+  it('regression: the verified bulletin intentionally fails ingestEvents\' shape gate on ttl alone, so seedDemo must not route it through ingestEvents', () => {
+    // Bug history: the bulletin's 5-year ttl (so its pre-baked timestamp never
+    // goes stale) exceeds MAX_TTL_SECONDS, which isValidEventShape enforces
+    // for anything crossing a real ingest trust boundary. seedDemo used to call
+    // ingestEvents(buildDemoEvents()), which silently dropped this event every
+    // time — the demo's headline "✓ verified" bulletin never appeared, and
+    // hasDemoSeed (which keys off this event's presence) never found it, so
+    // every repeat `?demo=1` visit re-signed and re-ingested the whole seed.
+    // eventsStore.seedDemo now writes straight to Dexie via bulkPut instead.
+    const bulletin = buildDemoEvents().find((e) => e.id === DEMO_BULLETIN_ID)!;
+    expect(bulletin.ttl).toBeGreaterThan(MAX_TTL_SECONDS);
+    expect(isValidEventShape(bulletin)).toBe(false);
+    // It's still a completely valid, verifiable event on its own terms —
+    // only the ttl-vs-network-trust-boundary gate objects to it.
+    expect(verifyEvent(bulletin)).toBe(true);
   });
 });

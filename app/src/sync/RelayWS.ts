@@ -31,6 +31,26 @@ export interface RelayWSHooks {
 const MAX_BACKOFF_MS = 30_000;
 const MAX_EVENTS_PER_MESSAGE = 500;
 
+// Client-side protocol limits. The relay enforces the same shape (see
+// relay/src/sync.ts) so a *well-behaved* relay never sends more than this —
+// but a manually-configured node (Sync → Connect to local node) is any host
+// the user typed in, and nothing stops it from being malicious or just
+// broken. These bounds keep a hostile or misconfigured relay from parking
+// unbounded arrays or megabytes of JSON in this tab.
+const MAX_INCOMING_MESSAGE_BYTES = 4 * 1024 * 1024;
+const MAX_IDS_PER_MESSAGE = 5000;
+const ID_RE = /^[A-Za-z0-9_-]{22}$/;
+
+function validIds(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length > MAX_IDS_PER_MESSAGE) return null;
+  const ids: string[] = [];
+  for (const id of value) {
+    if (typeof id !== 'string' || !ID_RE.test(id)) return null;
+    ids.push(id);
+  }
+  return ids;
+}
+
 export class RelayWS {
   private readonly url: string;
   private readonly hooks: RelayWSHooks;
@@ -132,6 +152,10 @@ export class RelayWS {
     else if (data instanceof Blob) text = await data.text();
     else return;
 
+    // A hostile or misconfigured manual relay could otherwise hand this tab
+    // an arbitrarily large frame; drop it before it's even parsed.
+    if (text.length > MAX_INCOMING_MESSAGE_BYTES) return;
+
     let parsed: unknown;
     try {
       parsed = JSON.parse(text);
@@ -144,10 +168,13 @@ export class RelayWS {
     const msg = parsed as SyncMessage;
 
     if (msg.type === 'events' && Array.isArray(msg.events)) {
+      if (msg.events.length > MAX_EVENTS_PER_MESSAGE) return;
       await this.hooks.onEvents(msg.events);
       this.hooks.onSynced();
     } else if (msg.type === 'want' && Array.isArray(msg.ids)) {
-      const events = await this.hooks.getLocalEvents(msg.ids);
+      const ids = validIds(msg.ids);
+      if (!ids) return;
+      const events = await this.hooks.getLocalEvents(ids);
       if (events.length) this.send({ type: 'events', events });
     }
     // A client ignores incoming `have`: reconciliation is server-driven.

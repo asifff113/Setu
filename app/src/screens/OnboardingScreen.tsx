@@ -16,23 +16,37 @@ export function OnboardingScreen() {
   const [areaCode, setAreaCode] = useState<string | null>(settings?.areaCode ?? null);
   const [submitting, setSubmitting] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function finish() {
     if (submitting) return;
     setSubmitting(true);
-    const area = areaCode ? findAreaByCode(areaCode) : undefined;
-    await updateSettings({
-      name: name.trim().slice(0, 32),
-      areaCode,
-      gh: area?.gh ?? '',
-      onboarded: true,
-    });
+    setError(null);
+    try {
+      const area = areaCode ? findAreaByCode(areaCode) : undefined;
+      await updateSettings({
+        name: name.trim().slice(0, 32),
+        areaCode,
+        gh: area?.gh ?? '',
+        onboarded: true,
+      });
+    } catch {
+      setError(t('errorGeneric'));
+      setSubmitting(false);
+    }
   }
 
   async function startDemo() {
     if (demoLoading) return;
     setDemoLoading(true);
-    await tryDemo();
+    setError(null);
+    try {
+      await tryDemo();
+    } catch {
+      setError(t('errorDemo'));
+    } finally {
+      setDemoLoading(false);
+    }
   }
 
   return (
@@ -41,6 +55,7 @@ export function OnboardingScreen() {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-white">{t('onboardTitle')}</h1>
           <p className="mt-2 text-sm text-white/60">{t('onboardSubtitle')}</p>
+          {error && <p className="mt-3 text-sm text-need">{error}</p>}
         </div>
 
         <div className="flex flex-col items-center gap-2">

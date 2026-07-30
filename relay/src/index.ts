@@ -3,12 +3,14 @@ import { getConnInfo } from '@hono/node-server/conninfo';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
+import { timingSafeEqual } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadRelayIdentity } from './identity.js';
 import { litePage } from './lite.js';
+import { isPrivateHost } from './net.js';
 import { nodeQrPage } from './nodeqr.js';
 import { createRateLimiter } from './ratelimit.js';
 import { gatewayFromEnv, handleInboundSms } from './sms.js';
@@ -29,6 +31,7 @@ const hasBuiltApp = existsSync(INDEX_HTML);
 
 const port = Number(process.env.PORT ?? 8787);
 const dataDir = process.env.DATA_DIR;
+const isProduction = process.env.NODE_ENV === 'production';
 
 // The signed event cache and the relay's own identity. Both survive restarts
 // when DATA_DIR is set; otherwise they live in memory for the process lifetime.
@@ -48,18 +51,50 @@ const smsRateLimit = Number(process.env.SMS_RATE_LIMIT ?? 30);
 const smsRateWindowMs = Number(process.env.SMS_RATE_WINDOW_MS ?? 60_000);
 const smsLimiter = createRateLimiter(smsRateLimit, smsRateWindowMs);
 const MAX_SMS_BODY_BYTES = 16 * 1024;
+const metricsKey = process.env.METRICS_KEY?.trim() || undefined;
 
-if (process.env.NODE_ENV === 'production' && !smsInboundKey) {
+if (isProduction && !smsInboundKey) {
   throw new Error('SMS_INBOUND_KEY is required in production');
 }
 if (gateway.url && !smsInboundKey) {
   throw new Error('SMS_INBOUND_KEY is required when GATEWAY_URL is configured');
 }
+// Outbound SMS replies carry GATEWAY_KEY in an Authorization/API-key header
+// (see sms.ts sendReply) — sending that over plaintext http:// leaks it to
+// anyone on the path. Only exempt an explicit LAN/loopback gateway (a phone
+// running the android-sms-gateway app on the same network) or an operator who
+// has opted in knowingly.
+if (gateway.url) {
+  let gatewayHost: string | undefined;
+  try {
+    gatewayHost = new URL(gateway.url).hostname;
+  } catch {
+    throw new Error('GATEWAY_URL must be a valid URL');
+  }
+  const insecure = gateway.url.startsWith('http://');
+  const allowInsecure = process.env.GATEWAY_ALLOW_INSECURE === '1';
+  if (insecure && !isPrivateHost(gatewayHost) && !allowInsecure) {
+    throw new Error(
+      'GATEWAY_URL must use https:// for a non-LAN address (set GATEWAY_ALLOW_INSECURE=1 to override)',
+    );
+  }
+}
+
+/** Constant-time string compare so a wrong guess can't be timed byte-by-byte. */
+function timingSafeEqualStr(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  return bufA.length === bufB.length && timingSafeEqual(bufA, bufB);
+}
 
 /** Best-effort client identity for rate-limiting: Fly/proxy header, else socket. */
 function clientKey(c: Context): string {
   const fly = c.req.header('fly-client-ip')?.trim();
-  if (fly) return fly;
+  // Only trust this header when actually running on Fly — its proxy is what
+  // strips/sets it. Off Fly (bare VPS, Render, local), it's just another
+  // client-supplied header, so trusting it would let a client mint a fresh
+  // rate-limit bucket per request by sending a random value.
+  if (fly && process.env.FLY_APP_NAME) return fly;
   if (process.env.TRUST_PROXY === '1') {
     const xff = c.req.header('x-forwarded-for')?.split(',')[0]?.trim();
     if (xff) return xff;
@@ -73,12 +108,13 @@ function clientKey(c: Context): string {
 
 function smsAuthOk(c: Context): boolean {
   const sim = c.req.header('x-setu-sim-key')?.trim();
-  if (smsSimKey && sim === smsSimKey) return true;
-  if (!smsInboundKey) return process.env.NODE_ENV !== 'production' && !gateway.url;
+  if (smsSimKey && sim && timingSafeEqualStr(sim, smsSimKey)) return true;
+  if (!smsInboundKey) return !isProduction && !gateway.url;
   const header = c.req.header('x-setu-key')?.trim();
-  if (header && header === smsInboundKey) return true;
+  if (header && timingSafeEqualStr(header, smsInboundKey)) return true;
   const auth = c.req.header('authorization')?.trim();
-  return auth === smsInboundKey || auth === `Bearer ${smsInboundKey}`;
+  if (!auth) return false;
+  return timingSafeEqualStr(auth, smsInboundKey) || timingSafeEqualStr(auth, `Bearer ${smsInboundKey}`);
 }
 
 // Assigned once attachSync runs (after serve() below). Until then, and if the
@@ -87,28 +123,56 @@ function smsAuthOk(c: Context): boolean {
 let publish: (events: SetuEvent[]) => SetuEvent[] = (events) =>
   store.ingest(events, Math.floor(Date.now() / 1000));
 
+const BASE_CSP = {
+  defaultSrc: ["'self'"],
+  scriptSrc: ["'self'"],
+  styleSrc: ["'self'", "'unsafe-inline'"],
+  imgSrc: ["'self'", 'data:', 'blob:', 'https://*.tile.openstreetmap.org'],
+  connectSrc: ["'self'", 'ws:', 'wss:'],
+  mediaSrc: ["'self'", 'blob:'],
+  workerSrc: ["'self'", 'blob:'],
+  objectSrc: ["'none'"],
+  frameAncestors: ["'none'"],
+};
+const PERMISSIONS_POLICY = { camera: ['self'], microphone: ['self'], geolocation: ['self'] };
+
 const app = new Hono();
-app.use('*', secureHeaders({
-  contentSecurityPolicy: {
-    defaultSrc: ["'self'"],
-    scriptSrc: ["'self'", "'unsafe-inline'"],
-    styleSrc: ["'self'", "'unsafe-inline'"],
-    imgSrc: ["'self'", 'data:', 'blob:', 'https://*.tile.openstreetmap.org'],
-    connectSrc: ["'self'", 'ws:', 'wss:'],
-    mediaSrc: ["'self'", 'blob:'],
-    workerSrc: ["'self'", 'blob:'],
-    objectSrc: ["'none'"],
-    frameAncestors: ["'none'"],
-  },
+// Registered before the global '*' policy below so its post-response header
+// write (hono/secure-headers runs its `setHeaders` after `next()` resolves,
+// outermost-registered-last) wins for this one route: /sms-sim is the only
+// page with an inline <script> (see smssim.ts), so it's the only place that
+// needs 'unsafe-inline' in script-src. The rest of the app — the actual PWA —
+// keeps real XSS defense-in-depth with no inline scripts allowed.
+app.use('/sms-sim', secureHeaders({
+  contentSecurityPolicy: { ...BASE_CSP, scriptSrc: ["'self'", "'unsafe-inline'"] },
   referrerPolicy: 'no-referrer',
-  permissionsPolicy: {
-    camera: ['self'],
-    microphone: ['self'],
-    geolocation: ['self'],
-  },
+  permissionsPolicy: PERMISSIONS_POLICY,
+}));
+app.use('*', secureHeaders({
+  contentSecurityPolicy: BASE_CSP,
+  referrerPolicy: 'no-referrer',
+  permissionsPolicy: PERMISSIONS_POLICY,
 }));
 
-app.get('/healthz', (c) => c.json({ ok: true, events: store.count() }));
+// Public liveness/readiness probe: confirms the process is up AND the event
+// store can actually be read/written, without leaking operational counts to
+// anyone who can reach the port. See /metrics for authenticated numbers.
+app.get('/healthz', (c) => {
+  const ok = store.isWritable();
+  return c.json({ ok }, ok ? 200 : 503);
+});
+
+// GET /metrics — operational counts, gated behind METRICS_KEY so a public
+// relay doesn't hand out its event volume (and rough traffic shape) to
+// anyone who asks. Unset (default) => disabled entirely.
+app.get('/metrics', (c) => {
+  if (!metricsKey) return c.json({ ok: false, error: 'metrics disabled' }, 404);
+  const key = c.req.header('x-setu-metrics-key')?.trim();
+  if (!key || !timingSafeEqualStr(key, metricsKey)) {
+    return c.json({ ok: false, error: 'unauthorized' }, 401);
+  }
+  return c.json({ ok: true, events: store.count() });
+});
 
 // These non-SPA routes must be registered before the static catch-all below,
 // otherwise the index.html fallback would swallow them.
@@ -117,11 +181,15 @@ app.get('/node-qr', async (c) => c.html(await nodeQrPage(port)));
 // GET /lite — zero-JS read-only board (2G / Opera Mini fallback).
 app.get('/lite', (c) => c.html(litePage(store)));
 
-// GET /sms-sim — fake-phone demo posting to the webhook below. When an inbound
-// secret is set, it's injected here so the simulator keeps working (note: that
-// exposes the key to anyone who can load this page — for a hard lockdown,
-// restrict /sms-sim too; the key's real job is authenticating a real gateway).
-app.get('/sms-sim', (c) => c.html(smsSimPage()));
+// GET /sms-sim — fake-phone demo posting to the webhook below. The simulator
+// key (if any) is typed into the page's own field, never embedded in the
+// HTML. Disabled by default in production — a demo/testing surface has no
+// business being reachable on a real deploy unless the operator explicitly
+// opts in by setting SMS_SIM_KEY.
+app.get('/sms-sim', (c) => {
+  if (isProduction && !smsSimKey) return c.text('Not found', 404);
+  return c.html(smsSimPage());
+});
 
 // POST /api/sms/inbound — gateway webhook (android-sms-gateway + httpSMS + the
 // simulator). Rate-limited per client, and gated by SMS_INBOUND_KEY when set,
@@ -134,7 +202,15 @@ app.post('/api/sms/inbound', async (c) => {
   if (!smsAuthOk(c)) {
     return c.json({ ok: false, error: 'unauthorized' }, 401);
   }
-  const contentLength = Number(c.req.header('content-length') ?? 0);
+  // Chunked-encoded requests carry no Content-Length (the two are mutually
+  // exclusive per HTTP/1.1), so requiring the header up front rejects them
+  // outright instead of buffering an attacker-controlled, unbounded body into
+  // memory before the size check below ever runs.
+  const contentLengthHeader = c.req.header('content-length');
+  if (!contentLengthHeader) {
+    return c.json({ ok: false, error: 'content-length required' }, 411);
+  }
+  const contentLength = Number(contentLengthHeader);
   if (!Number.isFinite(contentLength) || contentLength > MAX_SMS_BODY_BYTES) {
     return c.json({ ok: false, error: 'payload too large' }, 413);
   }
@@ -158,13 +234,17 @@ app.post('/api/sms/inbound', async (c) => {
   return c.json(json, status as 200 | 400);
 });
 
+// Read once at boot rather than on every SPA navigation — the file doesn't
+// change while the process is running.
+const indexHtml = hasBuiltApp ? readFileSync(INDEX_HTML, 'utf-8') : null;
+
 if (hasBuiltApp) {
   // Real files (JS/CSS/fonts/icons/manifest/sw.js) are served as-is; any path
   // that doesn't match one (e.g. a client-side route like /board) falls
   // through to index.html so React Router can take over — the standard SPA
   // serving pattern.
   app.use('/*', serveStatic({ root: STATIC_DIR }));
-  app.get('*', (c) => c.html(readFileSync(INDEX_HTML, 'utf-8')));
+  app.get('*', (c) => c.html(indexHtml!));
 } else {
   app.get('/', (c) =>
     c.text(
@@ -209,7 +289,37 @@ publish = hub.publish;
 // Drop expired events periodically so the cache stays bounded on a long-running
 // relay. `.unref()` keeps this timer from holding the process open on its own.
 const PRUNE_INTERVAL_MS = 5 * 60 * 1000;
-setInterval(() => {
+const pruneTimer = setInterval(() => {
   const removed = store.prune(Math.floor(Date.now() / 1000));
   if (removed > 0) console.log(`[setu-relay] pruned ${removed} expired events`);
 }, PRUNE_INTERVAL_MS).unref();
+
+// Graceful shutdown: stop taking new work, let in-flight requests finish,
+// then release the WS peers, the prune timer, and the SQLite handle — a
+// relay that's `kill`ed or redeployed mid-sync shouldn't corrupt its DB file
+// or leave phones spinning against a socket that's never coming back.
+const SHUTDOWN_TIMEOUT_MS = 5000;
+let shuttingDown = false;
+function shutdown(signal: string): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[setu-relay] ${signal} received, shutting down...`);
+  clearInterval(pruneTimer);
+  hub.close();
+  const forceExit = setTimeout(() => {
+    console.log('[setu-relay] shutdown timed out, forcing exit');
+    process.exit(0);
+  }, SHUTDOWN_TIMEOUT_MS);
+  forceExit.unref();
+  server.close(() => {
+    clearTimeout(forceExit);
+    try {
+      store.close();
+    } catch {
+      /* already closed */
+    }
+    process.exit(0);
+  });
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

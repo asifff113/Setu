@@ -75,6 +75,8 @@ export function HomeScreen() {
         n: settings.name.trim() || undefined,
       });
       setToast(t('submittedSafe'));
+    } catch {
+      setToast(t('errorGeneric'));
     } finally {
       setBusy(false);
     }
@@ -112,6 +114,8 @@ export function HomeScreen() {
       });
       setHelpOpen(false);
       setToast(t('submittedHelp'));
+    } catch {
+      setToast(t('errorGeneric'));
     } finally {
       setBusy(false);
     }
@@ -137,6 +141,8 @@ export function HomeScreen() {
       });
       setPersonOpen(false);
       setToast(t('submittedPerson'));
+    } catch {
+      setToast(t('errorGeneric'));
     } finally {
       setBusy(false);
     }

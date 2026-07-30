@@ -11,7 +11,7 @@
  */
 import type { SetuEvent } from '@setu/shared';
 import { create } from 'zustand';
-import { ingestEvents, liveEvents } from '../db/events';
+import { ingestEvents, liveEvents, pruneEvents } from '../db/events';
 import { db } from '../db/schema';
 import { isDemoEvent } from '../lib/demoSeed';
 import { RelayWS, type RelayStatus, type RelayWSHooks } from '../sync/RelayWS';
@@ -20,6 +20,15 @@ import { useAppStore } from './appStore';
 import { useEventsStore } from './eventsStore';
 
 const NODE_URL_KEY = 'setu.nodeUrl';
+// hydrate() only prunes once at boot, but a crisis device can stay open (and
+// keep receiving events) for days — re-check periodically and whenever the
+// app comes back to the foreground so IndexedDB stays bounded.
+const PRUNE_INTERVAL_MS = 30 * 60 * 1000;
+
+async function pruneAndRefresh(): Promise<void> {
+  const removed = await pruneEvents();
+  if (removed > 0) await useEventsStore.getState().refresh();
+}
 
 /** 🟡 connecting · 🟢 relay · 🟡 node · 🔴 offline (offline is normal, not an error). */
 export type SyncStatus = 'connecting' | 'relay' | 'node' | 'offline';
@@ -119,14 +128,32 @@ export const useSyncStore = create<SyncState>((set, get) => {
       void get().refreshStats();
       startTarget(stored);
 
+      // The connection URL bakes in `?gh=` as a room hint (see withGh), so
+      // changing area on Onboarding/Home doesn't just need a re-advertise —
+      // it needs a fresh connection carrying the new prefix. Reconnecting to
+      // the *same* target on a real gh change is cheap and rare (onboarding,
+      // or a deliberate area change), so a full restart here is simpler and
+      // more correct than trying to patch the live socket's query string.
+      let lastGh = useAppStore.getState().settings?.gh ?? '';
+      useAppStore.subscribe((state) => {
+        const gh = state.settings?.gh ?? '';
+        if (gh === lastGh) return;
+        lastGh = gh;
+        startTarget(get().nodeUrl);
+      });
+
       // Chromium-only Background Sync isn't reliable; instead re-sync whenever
       // the app regains the network or comes to the foreground.
       if (typeof window !== 'undefined') {
         const resync = () => relay?.resync();
         window.addEventListener('online', resync);
         document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'visible') resync();
+          if (document.visibilityState === 'visible') {
+            resync();
+            void pruneAndRefresh();
+          }
         });
+        setInterval(() => void pruneAndRefresh(), PRUNE_INTERVAL_MS);
       }
     },
 

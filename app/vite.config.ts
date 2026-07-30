@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
@@ -5,6 +6,13 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
+  test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      exclude: ['**/*.test.ts', '**/*.test.tsx', 'dist/**', 'dev-dist/**'],
+    },
+  },
   server: {
     // Dev convenience: proxy the sync socket to a locally-running relay so
     // `npm run dev` (5173) + `npm run dev:relay` (8787) sync end-to-end.

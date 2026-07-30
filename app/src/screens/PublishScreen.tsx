@@ -56,6 +56,7 @@ export function PublishScreen() {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [published, setPublished] = useState<SetuEvent | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const derived = useMemo(() => (secretInput.trim() ? deriveFromSecret(secretInput) : null), [secretInput]);
   const secretLooksInvalid = secretInput.trim().length > 0 && derived === null;
@@ -64,6 +65,7 @@ export function PublishScreen() {
   async function submit() {
     if (!derived || !message.trim() || busy) return;
     setBusy(true);
+    setError(null);
     try {
       const area = areaCode ? findAreaByCode(areaCode) : undefined;
       const event = createEvent(
@@ -74,6 +76,8 @@ export function PublishScreen() {
       await useEventsStore.getState().refresh();
       useSyncStore.getState().push([event]);
       setPublished(event);
+    } catch {
+      setError(t('errorGeneric'));
     } finally {
       setBusy(false);
     }
@@ -168,6 +172,8 @@ export function PublishScreen() {
                 className="w-full resize-none rounded-xl bg-surface-2 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
+
+            {error && <p className="text-xs text-need">{error}</p>}
 
             <button
               type="button"

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { ingestEvents } from '../db/events';
 import { useI18n, type DictKey } from '../i18n';
 import {
@@ -9,6 +9,7 @@ import {
   type BundleFilter,
 } from '../lib/bundle';
 import { timeAgo, toBnDigits } from '../lib/time';
+import { isPrivateWsUrl, normalizeNodeUrl } from '../sync/wsurl';
 import { useAppStore } from '../store/appStore';
 import { useEventsStore } from '../store/eventsStore';
 import { useSyncStore, type SyncStatus } from '../store/syncStore';
@@ -64,6 +65,18 @@ export function SyncScreen() {
   useEffect(() => {
     void refreshStats();
   }, [refreshStats]);
+
+  // A manually-typed/scanned node is any host the user enters — nothing
+  // verifies it's actually who it claims to be, and unlike the auto relay
+  // (always wss:// in production, since the page itself is https://) a
+  // plaintext ws:// node sends every event (names, locations, help requests)
+  // over the network unencrypted. Only warn for a *non-LAN* plaintext target:
+  // the offline-hotspot path (README "Sync") is legitimately ws:// to a
+  // private address and shouldn't nag.
+  const insecureNodeWarning = useMemo(() => {
+    const url = normalizeNodeUrl(nodeInput);
+    return !!url && url.startsWith('ws://') && !isPrivateWsUrl(url);
+  }, [nodeInput]);
 
   const num = (n: number): string => (lang === 'bn' ? toBnDigits(n) : String(n));
 
@@ -262,6 +275,9 @@ export function SyncScreen() {
               className="w-full rounded-xl bg-surface-2 px-4 py-3 font-mono text-sm text-white placeholder:font-sans placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-accent"
             />
             {nodeError && <p className="-mt-1 text-xs text-need">{nodeError}</p>}
+            {!nodeError && insecureNodeWarning && (
+              <p className="-mt-1 text-xs text-yellow-400">{t('syncNodeInsecureWarning')}</p>
+            )}
             <div className="flex gap-3">
               <button
                 type="button"

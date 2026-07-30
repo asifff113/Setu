@@ -34,7 +34,11 @@ function hashJitter(id: string): [number, number] {
     h1 = (h1 * 31 + id.charCodeAt(i)) | 0;
     h2 = (h2 * 131 + id.charCodeAt(i)) | 0;
   }
-  return [((h1 % 1000) / 1000) * JITTER_DEGREES, ((h2 % 1000) / 1000) * JITTER_DEGREES];
+  // `| 0` above makes h1/h2 signed 32-bit, so a plain `% 1000` can be
+  // negative; normalize into [0, 1000) first so the offset is symmetric
+  // around the centroid instead of only ever biasing southwest.
+  const unsigned = (n: number): number => ((n % 1000) + 1000) % 1000;
+  return [(unsigned(h1) / 1000) * JITTER_DEGREES, (unsigned(h2) / 1000) * JITTER_DEGREES];
 }
 
 /**

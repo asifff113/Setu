@@ -5,6 +5,7 @@ export * from './base64.js';
 export * from './crypto.js';
 export * from './codec.js';
 export * from './publishers.js';
+export * from './demo.js';
 export * from './views.js';
 export * from './wire.js';
 export * from './fountain.js';

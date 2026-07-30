@@ -75,6 +75,23 @@ describe('buildMapMarkers', () => {
     const bulletin = ev({ t: 'bulletin', ts: 1, gh: MIRPUR_GH, msg: 'shelter open' });
     expect(buildMapMarkers([bulletin])).toHaveLength(0);
   });
+
+  it('jitters the centroid fallback northeast only, never southwest (regression: signed % on a hashed id used to bias half of ids negative)', () => {
+    const resolved = findAreaByGh(MIRPUR_GH)!;
+    const JITTER_DEGREES = 0.003;
+    // Many distinct ids (distinct authors, so none collapse via the
+    // per-person board dedup) so this exercises both hash-sign cases that a
+    // plain `% 1000` on a signed 32-bit int would have produced.
+    const events = Array.from({ length: 50 }, (_, i) =>
+      ev({ t: 'checkin', ts: i + 1, gh: MIRPUR_GH, st: 'safe' }, generateKeypair()),
+    );
+    for (const marker of buildMapMarkers(events)) {
+      expect(marker.lat).toBeGreaterThanOrEqual(resolved.lat);
+      expect(marker.lat).toBeLessThan(resolved.lat + JITTER_DEGREES);
+      expect(marker.lng).toBeGreaterThanOrEqual(resolved.lng);
+      expect(marker.lng).toBeLessThan(resolved.lng + JITTER_DEGREES);
+    }
+  });
 });
 
 describe('areaCounts', () => {

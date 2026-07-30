@@ -13,11 +13,14 @@ import { verifyEvent } from './codec.js';
 import type { SetuEvent } from './types.js';
 
 export const PINNED_PUBLISHERS: readonly string[] = [
-  // Demo publisher, generated for this hackathon build. The matching secret
-  // lives in DEMO_PUBLISHER.local.md (gitignored) — paste it into /publish
-  // to sign bulletins that render with the ✓ verified badge.
-  // This key verifies only the immutable, synthetic demo bulletin. Its private
-  // key has been destroyed and cannot publish new trusted notices.
+  // Demo publisher, generated for this hackathon build, used once to sign the
+  // fixed VERIFIED_BULLETIN literal in app/src/lib/demoSeed.ts. Its secret key
+  // is not present anywhere in this repo (a *.local.md file was the intended
+  // holding place, per the app/src/screens/PublishScreen.tsx "paste a secret"
+  // flow, but none is checked in) — treat it as destroyed. In practice this
+  // means /publish can verify whether a pasted secret matches a pinned key,
+  // but has no way to mint a new ✓-badge bulletin today; add a real secret
+  // here (and to your own gitignored holding file) to change that.
   'uxqNicQzfR99CtZR4A1kVcn9bTkQAnuoZMEry0E1AYs',
 ];
 

@@ -1,7 +1,8 @@
 import { createEvent, type NewEventInput, type SetuEvent } from '@setu/shared';
 import { create } from 'zustand';
+import { db } from '../db/schema';
 import { ingestEvents, liveEvents, pruneEvents } from '../db/events';
-import { buildDemoEvents, hasDemoSeed } from '../lib/demoSeed';
+import { buildDemoEvents, DEMO_BULLETIN_ID } from '../lib/demoSeed';
 import { useAppStore } from './appStore';
 import { useSyncStore } from './syncStore';
 
@@ -68,8 +69,14 @@ export const useEventsStore = create<EventsState>((set, get) => ({
   },
 
   seedDemo: async () => {
-    if (hasDemoSeed(get().events)) return;
-    await ingestEvents(buildDemoEvents());
+    // Checked directly against IndexedDB (not the in-memory `events`, which
+    // may not be hydrated yet) so a repeat `?demo=1` visit is a true no-op.
+    // Written with bulkPut rather than ingestEvents: the seed is trusted local
+    // data signed on this device (see demoSeed.ts), and ingestEvents' shape
+    // gate caps ttl at 7 days for events arriving over the network — which the
+    // pinned bulletin's intentional 5-year ttl would fail.
+    if (await db.events.get(DEMO_BULLETIN_ID)) return;
+    await db.events.bulkPut(buildDemoEvents());
     await get().refresh();
   },
 }));

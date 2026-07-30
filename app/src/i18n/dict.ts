@@ -14,6 +14,14 @@ export const dict = {
   send: { bn: 'পাঠান', en: 'Send' },
   close: { bn: 'বন্ধ করুন', en: 'Close' },
   search: { bn: 'খুঁজুন', en: 'Search' },
+  errorGeneric: {
+    bn: 'কিছু একটা ভুল হয়েছে — আবার চেষ্টা করুন।',
+    en: 'Something went wrong — please try again.',
+  },
+  errorDemo: {
+    bn: 'ডেমো লোড করা যায়নি — আবার চেষ্টা করুন।',
+    en: "Couldn't load the demo — please try again.",
+  },
 
   // Tab bar
   tabHome: { bn: 'হোম', en: 'Home' },
@@ -100,6 +108,10 @@ export const dict = {
     en: 'Type the laptop address or scan its /node-qr. e.g. 192.168.0.5:8787',
   },
   syncNodePlaceholder: { bn: '192.168.0.5:8787', en: '192.168.0.5:8787' },
+  syncNodeInsecureWarning: {
+    bn: '⚠ এই ঠিকানাটি লোকাল নেটওয়ার্কের বাইরে এবং এনক্রিপ্ট করা নয় — নাম ও অবস্থান খোলা নেটওয়ার্কে যেতে পারে।',
+    en: '⚠ This address is outside your local network and unencrypted — names and locations would travel in the clear.',
+  },
   syncNodeScan: { bn: 'স্ক্যান', en: 'Scan' },
   syncNodeConnect: { bn: 'যুক্ত হোন', en: 'Connect' },
   syncNodeDisconnect: { bn: 'স্থানীয় নোড বন্ধ করুন', en: 'Disconnect local node' },

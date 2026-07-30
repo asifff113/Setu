@@ -1,5 +1,15 @@
-/** LAN address discovery for the /node-qr page. */
+/** LAN address discovery + private-address classification, shared by sync.ts and index.ts. */
 import { networkInterfaces } from 'node:os';
+
+/** True for localhost / RFC-1918 / mDNS hosts — mirrors app/src/sync/wsurl.ts's isPrivateWsUrl. */
+export function isPrivateHost(hostname: string): boolean {
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true;
+  if (/^10\./.test(hostname)) return true;
+  if (/^192\.168\./.test(hostname)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) return true;
+  if (/\.local$/i.test(hostname)) return true;
+  return false;
+}
 
 /**
  * Best-guess LAN IPv4 for reaching this relay from a phone on the same Wi-Fi.
