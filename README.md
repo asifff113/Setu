@@ -186,10 +186,11 @@ automatically; it also auto-generates `SMS_INBOUND_KEY` for you (see
 here the way there is on Fly. Health checks hit `/healthz`.
 
 The included Blueprint uses Render's free tier and therefore does not attach a
-persistent disk. The relay cache is in memory and resets when the service
-restarts or redeploys; events already stored on phones remain safe and are
-uploaded again on their next sync. Use a paid Render disk or Fly volume when
-the relay itself must retain events across restarts.
+persistent disk. SQLite and the relay signing key use `/tmp/data`, Render's
+temporary filesystem, and may reset when the instance is replaced or
+redeployed; events already stored on phones remain safe and are uploaded again
+on their next sync. Use a paid Render disk or Fly volume when the relay itself
+must retain events across instance replacements.
 
 `/sms-sim` is disabled by default once `NODE_ENV=production` (both platforms
 set this). To demo it on a Render/Fly deploy, set `SMS_SIM_KEY` — an
