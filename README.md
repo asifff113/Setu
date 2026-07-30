@@ -298,6 +298,25 @@ leaving implicit:
   favor of `react-router` + `react-router/dom` and requires React
   19.2.7+/Node 22.22+ — a deliberate, larger migration to take on
   separately, not a drive-by version bump.
+- **`npm audit` shows the `brace-expansion` DoS advisory
+  ([GHSA-mh99-v99m-4gvg](https://github.com/advisories/GHSA-mh99-v99m-4gvg))
+  as still open on two dev-only nodes** (under `eslint`'s config resolver and,
+  transitively, `vite-plugin-pwa`'s workbox build chain) even after patching.
+  The advisory's tracked `first_patched_version` is `5.0.8`, but the older
+  `minimatch` majors these tools pin (`3.x`, `5.x`) can't take a `brace-expansion`
+  5.x without breaking — confirmed by trying it: forcing 5.x tree-wide made
+  `eslint .` crash with `expand is not a function`, because the 5.x line
+  changed its internal call signature. What actually shipped is a same-day
+  backport: the maintainer patched `1.1.17` and `2.1.3` with the identical
+  fix (`EXPANSION_MAX_LENGTH` bound + iterative rewrite, verified by diffing
+  the packed tarballs) for exactly this compatibility reason. `overrides` in
+  the root `package.json` pins the one node that doesn't self-resolve to a
+  patched version (`minimatch@3.1.5`'s `brace-expansion` was stuck on
+  `1.1.16`) up to `1.1.17`; the other node already resolves to `2.1.3` on its
+  own. Both are patched in practice — `npm audit`'s advisory data just hasn't
+  caught up to the backports — and the vulnerability itself (attacker-supplied
+  glob input exhausting memory) has no reachable path here regardless: nothing
+  in this repo runs `eslint` or `vite-plugin-pwa` against untrusted input.
 
 ## License
 
