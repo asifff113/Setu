@@ -665,7 +665,7 @@ export function HomeScreen() {
 
           <div>
             <p className="mb-2 text-sm font-medium text-muted">{t('personAreaLabel')}</p>
-            <AreaPicker value={personAreaCode} onChange={(area) => setPersonAreaCode(area.code)} />
+            <AreaPicker value={personAreaCode} onChange={(area) => setPersonAreaCode(area?.code ?? null)} />
           </div>
 
           <div>

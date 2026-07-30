@@ -188,7 +188,7 @@ export function PublishScreen() {
 
             <div>
               <p className="mb-2 text-sm font-medium text-muted">{t('publishAreaLabel')}</p>
-              <AreaPicker value={areaCode} onChange={(area) => setAreaCode(area.code)} />
+              <AreaPicker value={areaCode} onChange={(area) => setAreaCode(area?.code ?? null)} />
             </div>
 
             <div>

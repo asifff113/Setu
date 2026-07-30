@@ -45,6 +45,8 @@ export const dict = {
   onboardAreaLabel: { bn: 'আপনার এলাকা', en: 'Your area' },
   onboardAreaSearchPlaceholder: { bn: 'এলাকার নাম লিখুন...', en: 'Type an area name...' },
   onboardAreaNone: { bn: 'নির্বাচন করা হয়নি', en: 'Not selected' },
+  areaClear: { bn: 'বাদ দিন', en: 'Clear' },
+  areaClearSearch: { bn: 'খোঁজা মুছুন', en: 'Clear search' },
   onboardLanguageLabel: { bn: 'ভাষা', en: 'Language' },
   onboardGetStarted: { bn: 'শুরু করুন', en: 'Get started' },
   onboardSkip: { bn: 'এড়িয়ে যান', en: 'Skip for now' },

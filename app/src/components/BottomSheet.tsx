@@ -10,12 +10,23 @@ interface BottomSheetProps {
 /** Generic slide-up sheet for the Help and Missing/Found report forms. */
 export function BottomSheet({ open, onClose, title, children }: BottomSheetProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  // Every caller passes `onClose` as an inline arrow, so its identity changes on
+  // each parent render. Reading it through a ref keeps the focus effect below
+  // keyed on `open` alone: when it also depended on `onClose`, typing one letter
+  // in a field re-rendered the parent, re-ran the effect's cleanup (restoring
+  // focus to whatever opened the sheet) and then refocused the panel — so the
+  // caret was thrown out of the box after every single keystroke.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
     panelRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') onCloseRef.current();
       if (event.key !== 'Tab' || !panelRef.current) return;
       const focusable = panelRef.current.querySelectorAll<HTMLElement>(
         'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href]',
@@ -36,7 +47,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
       document.removeEventListener('keydown', onKey);
       previous?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-30 flex items-end justify-center">

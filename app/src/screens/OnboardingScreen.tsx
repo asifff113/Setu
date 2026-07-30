@@ -178,7 +178,7 @@ export function OnboardingScreen() {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-muted">{t('onboardAreaLabel')}</label>
-            <AreaPicker value={areaCode} onChange={(area) => setAreaCode(area.code)} />
+            <AreaPicker value={areaCode} onChange={(area) => setAreaCode(area?.code ?? null)} />
           </div>
         </section>
       </div>
