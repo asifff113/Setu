@@ -13,8 +13,8 @@ const DEFAULT_ZOOM = 7;
 // Mirror the Tailwind theme tokens (index.css `@theme`) — Leaflet's SVG
 // renderer sets these as literal path attributes, not through the cascade,
 // so a CSS var() reference here wouldn't resolve.
-const SAFE_COLOR = '#2fb344';
-const NEED_COLOR = '#e5322d';
+const SAFE_COLOR = '#18864b';
+const NEED_COLOR = '#c92d2d';
 
 /** `navigator.onLine`, kept live via the online/offline events. */
 function useOnlineStatus(): boolean {
@@ -103,11 +103,11 @@ export function MapScreen() {
 
   return (
     <div className="flex flex-col gap-4 px-4 pt-4 pb-6">
-      <h1 className="text-xl font-bold text-white">{t('mapTitle')}</h1>
+      <h1 className="text-xl font-bold text-ink">{t('mapTitle')}</h1>
 
       {showMap ? (
         <>
-          <div className="h-[60vh] min-h-[320px] w-full overflow-hidden rounded-2xl">
+          <div className="relative h-[60vh] min-h-[320px] w-full overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
             <MapContainer
               center={BANGLADESH_CENTER}
               zoom={DEFAULT_ZOOM}
@@ -126,7 +126,7 @@ export function MapScreen() {
                   center={[marker.lat, marker.lng]}
                   radius={9}
                   pathOptions={{
-                    color: '#0b0b0c',
+                    color: '#ffffff',
                     weight: 2,
                     fillColor: marker.color === 'safe' ? SAFE_COLOR : NEED_COLOR,
                     fillOpacity: 0.9,
@@ -142,30 +142,29 @@ export function MapScreen() {
                 </CircleMarker>
               ))}
             </MapContainer>
+            <div className="pointer-events-none absolute left-3 top-3 z-[500] flex items-center gap-3 rounded-full border border-line bg-surface/95 px-3 py-2 text-xs font-semibold text-muted shadow-sm backdrop-blur">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: SAFE_COLOR }} />
+                {t('mapLegendSafe')}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: NEED_COLOR }} />
+                {t('mapLegendNeed')}
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-white/60">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: SAFE_COLOR }} />
-              {t('mapLegendSafe')}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: NEED_COLOR }} />
-              {t('mapLegendNeed')}
-            </span>
-          </div>
-
-          {markers.length === 0 && <p className="pt-2 text-center text-sm text-white/40">{t('mapNoData')}</p>}
+          {markers.length === 0 && <p className="pt-2 text-center text-sm text-muted">{t('mapNoData')}</p>}
         </>
       ) : (
-        <div className="flex flex-col gap-4 rounded-2xl bg-surface p-4">
+        <div className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4 shadow-sm">
           <div>
-            <p className="text-sm font-medium text-white/80">{t('mapOfflineTitle')}</p>
-            <p className="mt-1 text-xs text-white/40">{t('mapOfflineHint')}</p>
+            <p className="text-sm font-semibold text-ink">{t('mapOfflineTitle')}</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted">{t('mapOfflineHint')}</p>
           </div>
 
           {counts.length === 0 ? (
-            <p className="pt-2 text-center text-sm text-white/40">{t('mapNoData')}</p>
+            <p className="pt-2 text-center text-sm text-muted">{t('mapNoData')}</p>
           ) : (
             <div className="flex flex-col gap-2">
               {counts.map(({ gh, count }) => (
@@ -173,8 +172,8 @@ export function MapScreen() {
                   key={gh || 'unknown'}
                   className="flex items-center justify-between rounded-xl bg-surface-2 px-4 py-3"
                 >
-                  <span className="text-sm text-white">{gh ? areaLabel(gh, lang) : t('unknownArea')}</span>
-                  <span className="text-sm font-semibold text-white/70">
+                  <span className="text-sm text-ink">{gh ? areaLabel(gh, lang) : t('unknownArea')}</span>
+                  <span className="text-sm font-semibold text-muted">
                     {count} {t('mapReportsSuffix')}
                   </span>
                 </div>

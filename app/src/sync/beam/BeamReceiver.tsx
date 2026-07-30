@@ -214,7 +214,7 @@ export function BeamReceiver({ onClose }: BeamReceiverProps) {
             <button
               type="button"
               onClick={onClose}
-              className="mt-2 rounded-xl bg-surface-2 px-8 py-3 text-sm font-medium text-white/80"
+              className="mt-2 rounded-xl bg-white/15 px-8 py-3 text-sm font-medium text-white"
             >
               {t('close')}
             </button>

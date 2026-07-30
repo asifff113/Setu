@@ -1,16 +1,11 @@
 import { useI18n, type DictKey } from '../i18n';
 import { useSyncStore, type SyncStatus } from '../store/syncStore';
 
-/**
- * The 🟢 relay / 🟡 local node / 🔴 offline pill, driven by the real relay
- * connection state (syncStore). Offline is styled as a routine state, not an
- * error — the whole point of Setu is that it keeps working with no network.
- */
-const PILL: Record<SyncStatus, { icon: string; key: DictKey }> = {
-  relay: { icon: '🟢', key: 'connRelay' },
-  node: { icon: '🟡', key: 'connNode' },
-  connecting: { icon: '🟡', key: 'connConnecting' },
-  offline: { icon: '🔴', key: 'connOffline' },
+const PILL: Record<SyncStatus, { key: DictKey; dot: string; tone: string }> = {
+  relay: { key: 'connRelay', dot: 'bg-safe', tone: 'text-safe' },
+  node: { key: 'connNode', dot: 'bg-warning', tone: 'text-warning' },
+  connecting: { key: 'connConnecting', dot: 'bg-warning', tone: 'text-warning' },
+  offline: { key: 'connOffline', dot: 'bg-muted', tone: 'text-muted' },
 };
 
 export function ConnectivityPill() {
@@ -19,9 +14,9 @@ export function ConnectivityPill() {
   const pill = PILL[status];
 
   return (
-    <div className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-xs text-white/70">
-      <span aria-hidden="true">{pill.icon}</span>
-      <span>{t(pill.key)}</span>
+    <div className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-medium shadow-sm">
+      <span className={`h-2.5 w-2.5 rounded-full ${pill.dot}`} aria-hidden="true" />
+      <span className={pill.tone}>{t(pill.key)}</span>
     </div>
   );
 }

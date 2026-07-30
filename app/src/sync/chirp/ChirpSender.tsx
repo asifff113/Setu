@@ -159,7 +159,7 @@ export function ChirpSender({ events, author, onClose }: ChirpSenderProps) {
               )}
               <span
                 className={`relative flex h-24 w-24 items-center justify-center rounded-full text-4xl ${
-                  playing ? 'bg-accent text-white' : 'bg-surface-2 text-white/80'
+                  playing ? 'bg-accent text-white' : 'bg-white/15 text-white/80'
                 }`}
                 aria-hidden="true"
               >
@@ -204,7 +204,7 @@ export function ChirpSender({ events, author, onClose }: ChirpSenderProps) {
                 <button
                   type="button"
                   onClick={toggleProtocol}
-                  className="rounded-full bg-surface-2 px-3 py-1.5 font-medium text-white/70 active:opacity-80"
+                  className="rounded-full bg-white/15 px-3 py-1.5 font-medium text-white/80 active:opacity-80"
                 >
                   {protocol === 'fast' ? t('chirpQuicker') : t('chirpReliable')}
                 </button>

@@ -5,16 +5,34 @@
 @theme {
   --font-sans:
     'Noto Sans Bengali', 'Noto Sans', system-ui, -apple-system, sans-serif;
-  --color-accent: #e5322d;
-  --color-bg: #121212;
-  --color-surface: #1c1c1e;
-  --color-surface-2: #262628;
-  --color-safe: #2fb344;
-  --color-need: #e5322d;
+  --color-accent: #1769aa;
+  --color-brand: #1769aa;
+  --color-brand-dark: #114b78;
+  --color-bg: #f4f7f9;
+  --color-surface: #ffffff;
+  --color-surface-2: #eaf0f3;
+  --color-ink: #142129;
+  --color-muted: #596870;
+  --color-line: #d8e1e6;
+  --color-safe: #18864b;
+  --color-need: #c92d2d;
+  --color-warning: #b86600;
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --color-bg: #0d1820;
+    --color-surface: #15232c;
+    --color-surface-2: #1e303b;
+    --color-ink: #f4f8fa;
+    --color-muted: #b8c6ce;
+    --color-line: #304654;
+  }
 }
 
 html,
@@ -26,7 +44,7 @@ body,
 body {
   margin: 0;
   background-color: var(--color-bg);
-  color: #f5f5f5;
+  color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
@@ -36,7 +54,7 @@ button {
   font-family: inherit;
 }
 
-/* Leaflet dark-theme overrides (Map screen). !important guards against load
+/* Leaflet theme overrides (Map screen). !important guards against load
    order — leaflet.css is imported lazily by MapScreen, so it may be injected
    after this stylesheet. */
 .leaflet-container {
@@ -57,21 +75,21 @@ button {
   background: var(--color-surface) !important;
 }
 .leaflet-popup-close-button {
-  color: rgba(255, 255, 255, 0.6) !important;
+  color: var(--color-muted) !important;
   z-index: 10;
 }
 .leaflet-control-attribution {
-  background: rgba(28, 28, 30, 0.8) !important;
-  color: rgba(255, 255, 255, 0.6) !important;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent) !important;
+  color: var(--color-muted) !important;
 }
 .leaflet-control-attribution a {
-  color: rgba(255, 255, 255, 0.85) !important;
+  color: var(--color-accent) !important;
 }
 .leaflet-control-zoom a {
-  background: var(--color-surface-2) !important;
-  color: #fff !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: var(--color-surface) !important;
+  color: var(--color-ink) !important;
+  border-color: var(--color-line) !important;
 }
 .leaflet-control-zoom a:hover {
-  background: var(--color-surface) !important;
+  background: var(--color-surface-2) !important;
 }

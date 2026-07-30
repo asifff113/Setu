@@ -90,32 +90,32 @@ export function PublishScreen() {
 
   return (
     <div className="flex h-full flex-col bg-bg">
-      <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-        <Link to="/" className="text-sm text-white/60">
+      <header className="flex items-center justify-between border-b border-line bg-surface/90 px-4 py-3 shadow-sm">
+        <Link to="/" className="text-sm font-medium text-muted">
           {t('publishBack')}
         </Link>
         <LanguageToggle />
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 pb-10 pt-4">
-        <h1 className="text-xl font-bold text-white">{t('publishTitle')}</h1>
-        <p className="mt-1 text-xs text-white/40">{t('publishHiddenNote')}</p>
+        <h1 className="text-xl font-bold text-ink">{t('publishTitle')}</h1>
+        <p className="mt-1 text-xs text-muted">{t('publishHiddenNote')}</p>
 
         {published ? (
-          <div className="mt-6 flex flex-col gap-4 rounded-2xl bg-surface p-4 text-left">
-            <p className="text-base font-medium text-safe">{t('publishSuccess')}</p>
-            <p className="text-sm text-white/70">{published.msg}</p>
+          <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4 text-left shadow-sm">
+            <p className="text-base font-semibold text-safe">{t('publishSuccess')}</p>
+            <p className="text-sm leading-relaxed text-ink/80">{published.msg}</p>
             <div className="flex gap-3">
               <Link
                 to="/board"
-                className="flex-1 rounded-xl bg-accent py-3 text-center text-sm font-semibold text-white"
+                className="min-h-12 flex-1 rounded-xl bg-accent py-3 text-center text-sm font-semibold text-white"
               >
                 {t('publishViewBoard')}
               </Link>
               <button
                 type="button"
                 onClick={reset}
-                className="flex-1 rounded-xl bg-surface-2 py-3 text-sm font-medium text-white/80"
+                className="min-h-12 flex-1 rounded-xl border border-line bg-surface-2 py-3 text-sm font-semibold text-ink"
               >
                 {t('publishAnother')}
               </button>
@@ -124,7 +124,7 @@ export function PublishScreen() {
         ) : (
           <div className="mt-6 flex flex-col gap-4 text-left">
             <div>
-              <label className="mb-2 block text-sm text-white/60" htmlFor="publish-secret">
+              <label className="mb-2 block text-sm font-medium text-muted" htmlFor="publish-secret">
                 {t('publishSecretLabel')}
               </label>
               <input
@@ -135,31 +135,31 @@ export function PublishScreen() {
                 value={secretInput}
                 onChange={(e) => setSecretInput(e.target.value)}
                 placeholder={t('publishSecretPlaceholder')}
-                className={`w-full rounded-xl bg-surface-2 px-4 py-3 font-mono text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 ${
+                className={`w-full rounded-xl border border-line bg-surface px-4 py-3 font-mono text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 ${
                   secretLooksInvalid ? 'ring-2 ring-need' : 'focus:ring-accent'
                 }`}
               />
-              <p className="mt-1.5 text-xs text-white/40">{t('publishSecretHint')}</p>
+              <p className="mt-1.5 text-xs text-muted">{t('publishSecretHint')}</p>
               {secretLooksInvalid && <p className="mt-1.5 text-xs text-need">{t('publishSecretInvalid')}</p>}
             </div>
 
             {derived && (
-              <div className="rounded-xl bg-surface-2 px-4 py-3">
-                <p className="text-xs uppercase tracking-wide text-white/40">{t('publishDerivedPublic')}</p>
-                <p className="mt-1 break-all font-mono text-xs text-white/70">{derived.author}</p>
-                <p className={`mt-2 text-xs ${derived.pinned ? 'text-safe' : 'text-yellow-400'}`}>
+              <div className="rounded-xl border border-line bg-surface-2 px-4 py-3">
+                <p className="text-xs uppercase tracking-wide text-muted">{t('publishDerivedPublic')}</p>
+                <p className="mt-1 break-all font-mono text-xs text-ink">{derived.author}</p>
+                <p className={`mt-2 text-xs ${derived.pinned ? 'text-safe' : 'text-warning'}`}>
                   {derived.pinned ? t('publishPinnedYes') : t('publishPinnedNo')}
                 </p>
               </div>
             )}
 
             <div>
-              <p className="mb-2 text-sm text-white/60">{t('publishAreaLabel')}</p>
+              <p className="mb-2 text-sm font-medium text-muted">{t('publishAreaLabel')}</p>
               <AreaPicker value={areaCode} onChange={(area) => setAreaCode(area.code)} />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm text-white/60" htmlFor="publish-message">
+              <label className="mb-2 block text-sm font-medium text-muted" htmlFor="publish-message">
                 {t('publishMessageLabel')}
               </label>
               <textarea
@@ -169,7 +169,7 @@ export function PublishScreen() {
                 placeholder={t('publishMessagePlaceholder')}
                 maxLength={280}
                 rows={4}
-                className="w-full resize-none rounded-xl bg-surface-2 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full resize-none rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -179,7 +179,7 @@ export function PublishScreen() {
               type="button"
               disabled={!canSubmit}
               onClick={() => void submit()}
-              className="rounded-xl bg-accent py-3.5 text-sm font-semibold text-white disabled:opacity-40"
+              className="min-h-12 rounded-xl bg-accent py-3.5 text-sm font-semibold text-white disabled:opacity-40"
             >
               {t('publishSubmit')}
             </button>

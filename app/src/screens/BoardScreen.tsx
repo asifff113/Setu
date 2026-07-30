@@ -38,6 +38,12 @@ export function BoardScreen() {
 
   const activeList =
     tab === 'people' ? people : tab === 'help' ? help : tab === 'missing' ? missing : bulletins;
+  const tabCounts: Record<BoardTab, number> = {
+    people: people.length,
+    help: help.length,
+    missing: missing.length,
+    bulletins: bulletins.length,
+  };
 
   const areaFiltered = useMemo(() => {
     if (!myAreaOnly || !settings?.gh) return activeList;
@@ -57,19 +63,31 @@ export function BoardScreen() {
 
   return (
     <div className="flex flex-col gap-4 px-4 pt-4">
-      <h1 className="text-xl font-bold text-white">{t('boardTitle')}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-bold text-ink">{t('boardTitle')}</h1>
+        <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-semibold text-muted">
+          {filtered.length}
+        </span>
+      </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex gap-2 overflow-x-auto rounded-2xl border border-line bg-surface p-1 shadow-sm">
         {TABS.map((tb) => (
           <button
             key={tb.key}
             type="button"
             onClick={() => setTab(tb.key)}
-            className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium ${
-              tab === tb.key ? 'bg-accent text-white' : 'bg-surface-2 text-white/70'
+            className={`inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
+              tab === tb.key ? 'bg-accent text-white' : 'text-muted hover:bg-surface-2 hover:text-ink'
             }`}
           >
-            {t(tb.labelKey)}
+            <span>{t(tb.labelKey)}</span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs ${
+                tab === tb.key ? 'bg-white/20 text-white' : 'bg-surface-2 text-muted'
+              }`}
+            >
+              {tabCounts[tb.key]}
+            </span>
           </button>
         ))}
       </div>
@@ -79,15 +97,15 @@ export function BoardScreen() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={t('searchPlaceholder')}
-        className="w-full rounded-xl bg-surface-2 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-accent"
+        className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink placeholder:text-muted shadow-sm focus:outline-none focus:ring-2 focus:ring-accent"
       />
 
       <div className="flex gap-2">
         <button
           type="button"
           onClick={() => setMyAreaOnly(false)}
-          className={`flex-1 rounded-xl py-2 text-sm font-medium ${
-            !myAreaOnly ? 'bg-accent text-white' : 'bg-surface-2 text-white/70'
+          className={`min-h-11 flex-1 rounded-xl border py-2 text-sm font-semibold ${
+            !myAreaOnly ? 'border-accent bg-accent text-white' : 'border-line bg-surface text-muted'
           }`}
         >
           {t('filterAll')}
@@ -96,8 +114,8 @@ export function BoardScreen() {
           type="button"
           onClick={() => setMyAreaOnly(true)}
           disabled={!settings?.gh}
-          className={`flex-1 rounded-xl py-2 text-sm font-medium disabled:opacity-40 ${
-            myAreaOnly ? 'bg-accent text-white' : 'bg-surface-2 text-white/70'
+          className={`min-h-11 flex-1 rounded-xl border py-2 text-sm font-semibold disabled:opacity-40 ${
+            myAreaOnly ? 'border-accent bg-accent text-white' : 'border-line bg-surface text-muted'
           }`}
         >
           {t('filterMyArea')}
@@ -106,7 +124,7 @@ export function BoardScreen() {
 
       <div className="flex flex-col gap-3 pb-6">
         {filtered.length === 0 && (
-          <p className="pt-6 text-center text-sm text-white/40">
+          <p className="rounded-2xl border border-line bg-surface px-4 py-8 text-center text-sm text-muted shadow-sm">
             {query.trim() ? t('noSearchResults') : t(EMPTY_KEY[tab])}
           </p>
         )}

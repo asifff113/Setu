@@ -18,7 +18,7 @@ const MapScreen = lazy(() => import('./screens/MapScreen').then((m) => ({ defaul
 function ScreenFallback() {
   return (
     <div className="flex h-[60vh] items-center justify-center">
-      <span className="text-lg font-semibold text-white/40">সেতু</span>
+      <span className="text-lg font-semibold text-muted">সেতু</span>
     </div>
   );
 }
@@ -42,7 +42,7 @@ export default function App() {
   if (!ready) {
     return (
       <div className="flex h-full items-center justify-center bg-bg">
-        <span className="text-2xl font-bold text-white">সেতু</span>
+        <span className="text-2xl font-bold text-ink">সেতু</span>
       </div>
     );
   }

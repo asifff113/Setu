@@ -9,26 +9,22 @@ import {
   type BundleFilter,
 } from '../lib/bundle';
 import { timeAgo, toBnDigits } from '../lib/time';
-import { isPrivateWsUrl, normalizeNodeUrl } from '../sync/wsurl';
 import { useAppStore } from '../store/appStore';
 import { useEventsStore } from '../store/eventsStore';
 import { useSyncStore, type SyncStatus } from '../store/syncStore';
+import { isPrivateWsUrl, normalizeNodeUrl } from '../sync/wsurl';
 
-// The transport overlays pull in the heavy codecs (jsQR + QR generation for
-// Beam, the ggwave WASM for Chirp) and only mount when the user opens one, so
-// they load lazily as their own chunks. All are precached by the PWA, so an
-// offline device still opens them instantly.
 const BeamReceiver = lazy(() => import('../sync/beam/BeamReceiver').then((m) => ({ default: m.BeamReceiver })));
 const BeamSender = lazy(() => import('../sync/beam/BeamSender').then((m) => ({ default: m.BeamSender })));
 const ChirpReceiver = lazy(() => import('../sync/chirp/ChirpReceiver').then((m) => ({ default: m.ChirpReceiver })));
 const ChirpSender = lazy(() => import('../sync/chirp/ChirpSender').then((m) => ({ default: m.ChirpSender })));
 const QrScanner = lazy(() => import('../sync/QrScanner').then((m) => ({ default: m.QrScanner })));
 
-const STATUS_META: Record<SyncStatus, { icon: string; key: DictKey; tint: string }> = {
-  relay: { icon: '🟢', key: 'syncStatusRelay', tint: 'text-safe' },
-  node: { icon: '🟡', key: 'syncStatusNode', tint: 'text-yellow-400' },
-  connecting: { icon: '🟡', key: 'syncStatusConnecting', tint: 'text-yellow-400' },
-  offline: { icon: '🔴', key: 'syncStatusOffline', tint: 'text-white/60' },
+const STATUS_META: Record<SyncStatus, { key: DictKey; dot: string; tint: string }> = {
+  relay: { key: 'syncStatusRelay', dot: 'bg-safe', tint: 'text-safe' },
+  node: { key: 'syncStatusNode', dot: 'bg-warning', tint: 'text-warning' },
+  connecting: { key: 'syncStatusConnecting', dot: 'bg-warning', tint: 'text-warning' },
+  offline: { key: 'syncStatusOffline', dot: 'bg-muted', tint: 'text-muted' },
 };
 
 const EXPORT_FILTERS: { value: BundleFilter; key: DictKey }[] = [
@@ -66,13 +62,6 @@ export function SyncScreen() {
     void refreshStats();
   }, [refreshStats]);
 
-  // A manually-typed/scanned node is any host the user enters — nothing
-  // verifies it's actually who it claims to be, and unlike the auto relay
-  // (always wss:// in production, since the page itself is https://) a
-  // plaintext ws:// node sends every event (names, locations, help requests)
-  // over the network unencrypted. Only warn for a *non-LAN* plaintext target:
-  // the offline-hotspot path (README "Sync") is legitimately ws:// to a
-  // private address and shouldn't nag.
   const insecureNodeWarning = useMemo(() => {
     const url = normalizeNodeUrl(nodeInput);
     return !!url && url.startsWith('ws://') && !isPrivateWsUrl(url);
@@ -81,7 +70,7 @@ export function SyncScreen() {
   const num = (n: number): string => (lang === 'bn' ? toBnDigits(n) : String(n));
 
   function formatBytes(bytes: number | null): string {
-    if (bytes === null) return '—';
+    if (bytes === null) return '-';
     if (bytes < 1024) return `${num(bytes)} B`;
     const kb = bytes / 1024;
     if (kb < 1024) return `${num(Math.round(kb))} KB`;
@@ -111,13 +100,12 @@ export function SyncScreen() {
     const name = `setu-${new Date().toISOString().slice(0, 10)}.setu`;
     const file = new File([blob], name, { type: 'application/octet-stream' });
 
-    // Prefer the native share sheet (Android); fall back to a plain download.
     if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({ files: [file], title: t('syncFileTitle') });
         return;
       } catch {
-        /* user cancelled or share failed → fall through to download */
+        // Fall back to a normal download when the native share sheet closes or fails.
       }
     }
     const url = URL.createObjectURL(blob);
@@ -130,7 +118,7 @@ export function SyncScreen() {
 
   async function handleImport(fileList: FileList | null) {
     const file = fileList?.[0];
-    if (importRef.current) importRef.current.value = ''; // allow re-picking same file
+    if (importRef.current) importRef.current.value = '';
     if (!file) return;
     try {
       if (file.size > MAX_COMPRESSED_BUNDLE_BYTES) throw new Error('file too large');
@@ -143,7 +131,7 @@ export function SyncScreen() {
       }
       setFileMsg({
         tone: 'ok',
-        text: `${t('syncImportDone')} — ${num(res.added)} ${t('beamNew')}, ${num(res.known)} ${t('beamKnown')}`,
+        text: `${t('syncImportDone')} - ${num(res.added)} ${t('beamNew')}, ${num(res.known)} ${t('beamKnown')}`,
       });
     } catch {
       setFileMsg({ tone: 'err', text: t('syncFileFailed') });
@@ -154,113 +142,107 @@ export function SyncScreen() {
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pt-6 pb-8">
-      <h1 className="px-1 text-2xl font-bold text-white">{t('syncTitle')}</h1>
+      <h1 className="px-1 text-2xl font-bold text-ink">{t('syncTitle')}</h1>
 
-      {/* QR Beam — the offline showpiece */}
-      <section className="rounded-2xl bg-surface p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-white/40">
-          {t('syncBeamTitle')}
-        </p>
-        <p className="mt-2 text-xs leading-relaxed text-white/40">{t('syncBeamHint')}</p>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setBeamMode('send')}
-            className="flex flex-col items-center gap-1 rounded-xl bg-accent py-4 text-sm font-semibold text-white active:opacity-90"
-          >
-            <span className="text-2xl" aria-hidden="true">
-              🔦
-            </span>
-            {t('syncBeamSend')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setBeamMode('scan')}
-            className="flex flex-col items-center gap-1 rounded-xl bg-surface-2 py-4 text-sm font-semibold text-white active:opacity-80"
-          >
-            <span className="text-2xl" aria-hidden="true">
-              📷
-            </span>
-            {t('syncBeamScan')}
-          </button>
-        </div>
-      </section>
-
-      {/* Chirp — data over sound, the last-resort transport */}
-      <section className="rounded-2xl bg-surface p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-white/40">
-          {t('syncChirpTitle')}
-        </p>
-        <p className="mt-2 text-xs leading-relaxed text-white/40">{t('syncChirpHint')}</p>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setChirpMode('send')}
-            className="flex flex-col items-center gap-1 rounded-xl bg-accent py-4 text-sm font-semibold text-white active:opacity-90"
-          >
-            <span className="text-2xl" aria-hidden="true">
-              📢
-            </span>
-            {t('syncChirpSend')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setChirpMode('listen')}
-            className="flex flex-col items-center gap-1 rounded-xl bg-surface-2 py-4 text-sm font-semibold text-white active:opacity-80"
-          >
-            <span className="text-2xl" aria-hidden="true">
-              🎧
-            </span>
-            {t('syncChirpListen')}
-          </button>
-        </div>
-      </section>
-
-      {/* Relay / auto status */}
-      <section className="rounded-2xl bg-surface p-4">
-        <div className="flex items-center justify-between">
+      <section className="rounded-3xl border border-line bg-surface p-5 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-white/40">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
               {t('syncRelayTitle')}
             </p>
-            <p className={`mt-1 flex items-center gap-2 text-lg font-semibold ${meta.tint}`}>
-              <span aria-hidden="true">{meta.icon}</span>
+            <p className={`mt-2 flex items-center gap-2 text-lg font-bold ${meta.tint}`}>
+              <span className={`h-3 w-3 rounded-full ${meta.dot}`} aria-hidden="true" />
               <span>{t(meta.key)}</span>
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-white/40">{t('syncLastSync')}</p>
-            <p className="text-sm text-white/80">
+            <p className="text-xs text-muted">{t('syncLastSync')}</p>
+            <p className="text-sm font-semibold text-ink">
               {lastSyncAt ? timeAgo(lastSyncAt, lang) : t('syncNever')}
             </p>
           </div>
         </div>
-        <p className="mt-3 text-xs leading-relaxed text-white/40">{t('syncRelayHint')}</p>
+        <p className="mt-4 text-sm leading-relaxed text-muted">{t('syncRelayHint')}</p>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-surface-2 px-3 py-3 text-center">
+            <p className="text-2xl font-bold text-ink">{num(eventCount)}</p>
+            <p className="mt-0.5 text-xs text-muted">{t('syncEventCount')}</p>
+          </div>
+          <div className="rounded-2xl bg-surface-2 px-3 py-3 text-center">
+            <p className="text-2xl font-bold text-ink">{formatBytes(storageBytes)}</p>
+            <p className="mt-0.5 text-xs text-muted">{t('syncStorageUsed')}</p>
+          </div>
+        </div>
       </section>
 
-      {/* Connect to local node */}
-      <section className="rounded-2xl bg-surface p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-white/40">
+      <section className="rounded-3xl border border-line bg-surface p-4 shadow-sm">
+        <div className="grid grid-cols-1 gap-3">
+          <div className="rounded-2xl border border-accent/20 bg-accent/5 p-4">
+            <p className="text-sm font-bold text-ink">{t('syncBeamTitle')}</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted">{t('syncBeamHint')}</p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setBeamMode('send')}
+                className="min-h-12 rounded-xl bg-accent px-3 py-3 text-sm font-semibold text-white active:opacity-90"
+              >
+                {t('syncBeamSend')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setBeamMode('scan')}
+                className="min-h-12 rounded-xl border border-line bg-surface px-3 py-3 text-sm font-semibold text-ink active:opacity-80"
+              >
+                {t('syncBeamScan')}
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-accent/20 bg-surface p-4">
+            <p className="text-sm font-bold text-ink">{t('syncChirpTitle')}</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted">{t('syncChirpHint')}</p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setChirpMode('send')}
+                className="min-h-12 rounded-xl bg-accent px-3 py-3 text-sm font-semibold text-white active:opacity-90"
+              >
+                {t('syncChirpSend')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setChirpMode('listen')}
+                className="min-h-12 rounded-xl border border-line bg-surface-2 px-3 py-3 text-sm font-semibold text-ink active:opacity-80"
+              >
+                {t('syncChirpListen')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
           {t('syncNodeTitle')}
         </p>
 
         {nodeUrl ? (
           <div className="mt-3 flex flex-col gap-3">
             <div className="flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2.5">
-              <span aria-hidden="true">💻</span>
-              <span className="flex-1 break-all font-mono text-xs text-white/80">{nodeUrl}</span>
+              <span className="h-2.5 w-2.5 rounded-full bg-warning" aria-hidden="true" />
+              <span className="flex-1 break-all font-mono text-xs text-ink">{nodeUrl}</span>
             </div>
             <button
               type="button"
               onClick={() => disconnectNode()}
-              className="rounded-xl bg-surface-2 py-3 text-sm font-medium text-white/80 active:opacity-80"
+              className="min-h-12 rounded-xl border border-line bg-surface-2 py-3 text-sm font-semibold text-ink active:opacity-80"
             >
               {t('syncNodeDisconnect')}
             </button>
           </div>
         ) : (
           <div className="mt-3 flex flex-col gap-3">
-            <p className="text-xs leading-relaxed text-white/40">{t('syncNodeHint')}</p>
+            <p className="text-sm leading-relaxed text-muted">{t('syncNodeHint')}</p>
             <input
               value={nodeInput}
               onChange={(e) => {
@@ -272,26 +254,25 @@ export function SyncScreen() {
               autoCorrect="off"
               spellCheck={false}
               placeholder={t('syncNodePlaceholder')}
-              className="w-full rounded-xl bg-surface-2 px-4 py-3 font-mono text-sm text-white placeholder:font-sans placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full rounded-xl border border-line bg-surface px-4 py-3 font-mono text-sm text-ink placeholder:font-sans placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
             />
             {nodeError && <p className="-mt-1 text-xs text-need">{nodeError}</p>}
             {!nodeError && insecureNodeWarning && (
-              <p className="-mt-1 text-xs text-yellow-400">{t('syncNodeInsecureWarning')}</p>
+              <p className="-mt-1 text-xs text-warning">{t('syncNodeInsecureWarning')}</p>
             )}
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setScanning(true)}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-surface-2 py-3 text-sm font-medium text-white/90 active:opacity-80"
+                className="min-h-12 flex-1 rounded-xl border border-line bg-surface-2 py-3 text-sm font-semibold text-ink active:opacity-80"
               >
-                <span aria-hidden="true">📷</span>
                 {t('syncNodeScan')}
               </button>
               <button
                 type="button"
                 disabled={!nodeInput.trim()}
                 onClick={() => submitNode(nodeInput)}
-                className="flex-1 rounded-xl bg-accent py-3 text-sm font-semibold text-white active:opacity-90 disabled:opacity-40"
+                className="min-h-12 flex-1 rounded-xl bg-accent py-3 text-sm font-semibold text-white active:opacity-90 disabled:opacity-40"
               >
                 {t('syncNodeConnect')}
               </button>
@@ -300,12 +281,11 @@ export function SyncScreen() {
         )}
       </section>
 
-      {/* File export / import — a free extra transport */}
-      <section className="rounded-2xl bg-surface p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-white/40">
+      <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
           {t('syncFileTitle')}
         </p>
-        <p className="mt-2 text-xs leading-relaxed text-white/40">{t('syncFileHint')}</p>
+        <p className="mt-2 text-sm leading-relaxed text-muted">{t('syncFileHint')}</p>
 
         <div className="mt-3 flex gap-1.5 rounded-xl bg-surface-2 p-1">
           {EXPORT_FILTERS.map((f) => (
@@ -313,8 +293,8 @@ export function SyncScreen() {
               key={f.value}
               type="button"
               onClick={() => setExportFilter(f.value)}
-              className={`flex-1 rounded-lg py-2 text-xs font-medium transition-colors ${
-                exportFilter === f.value ? 'bg-accent text-white' : 'text-white/60'
+              className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-colors ${
+                exportFilter === f.value ? 'bg-accent text-white' : 'text-muted'
               }`}
             >
               {t(f.key)}
@@ -326,14 +306,14 @@ export function SyncScreen() {
           <button
             type="button"
             onClick={() => void handleExport()}
-            className="flex-1 rounded-xl bg-surface-2 py-3 text-sm font-medium text-white/90 active:opacity-80"
+            className="min-h-12 flex-1 rounded-xl border border-line bg-surface-2 py-3 text-sm font-semibold text-ink active:opacity-80"
           >
             {t('syncExport')}
           </button>
           <button
             type="button"
             onClick={() => importRef.current?.click()}
-            className="flex-1 rounded-xl bg-surface-2 py-3 text-sm font-medium text-white/90 active:opacity-80"
+            className="min-h-12 flex-1 rounded-xl border border-line bg-surface-2 py-3 text-sm font-semibold text-ink active:opacity-80"
           >
             {t('syncImport')}
           </button>
@@ -350,23 +330,6 @@ export function SyncScreen() {
           className="hidden"
           onChange={(e) => void handleImport(e.target.files)}
         />
-      </section>
-
-      {/* Storage / stats */}
-      <section className="rounded-2xl bg-surface p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-white/40">
-          {t('syncStatsTitle')}
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <div className="rounded-xl bg-surface-2 px-3 py-3 text-center">
-            <p className="text-2xl font-bold text-white">{num(eventCount)}</p>
-            <p className="mt-0.5 text-xs text-white/50">{t('syncEventCount')}</p>
-          </div>
-          <div className="rounded-xl bg-surface-2 px-3 py-3 text-center">
-            <p className="text-2xl font-bold text-white">{formatBytes(storageBytes)}</p>
-            <p className="mt-0.5 text-xs text-white/50">{t('syncStorageUsed')}</p>
-          </div>
-        </div>
       </section>
 
       <Suspense fallback={null}>

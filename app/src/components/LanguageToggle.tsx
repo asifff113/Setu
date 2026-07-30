@@ -12,7 +12,7 @@ export function LanguageToggle() {
       type="button"
       onClick={() => void setLanguage(other)}
       aria-label="Toggle language"
-      className="rounded-full bg-surface-2 px-3 py-1.5 text-xs font-semibold text-white/80 active:bg-white/10"
+      className="rounded-full border border-line bg-surface-2 px-3 py-1.5 text-xs font-semibold text-ink active:bg-line"
     >
       {other === 'bn' ? 'বাং' : 'EN'}
     </button>

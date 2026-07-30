@@ -146,7 +146,7 @@ export function BeamSender({ events, onClose }: BeamSenderProps) {
             <button
               type="button"
               onClick={() => setSpeed((s) => (s === 'normal' ? 'slow' : 'normal'))}
-              className="w-full rounded-xl bg-surface-2 py-3 text-sm font-medium text-white/80 active:opacity-80"
+              className="w-full rounded-xl bg-white/15 py-3 text-sm font-medium text-white active:opacity-80"
             >
               {speed === 'normal' ? t('beamSlower') : t('beamFaster')}
             </button>

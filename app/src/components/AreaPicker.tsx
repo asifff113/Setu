@@ -22,17 +22,17 @@ export function AreaPicker({ value, onChange, placeholder }: AreaPickerProps) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder ?? t('onboardAreaSearchPlaceholder')}
-        className="w-full rounded-xl bg-surface-2 px-4 py-3 text-base text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-accent"
+        className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
       />
       {!query && (
-        <div className="rounded-xl bg-surface-2 px-4 py-3 text-sm text-white/70">
+        <div className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-sm text-muted">
           {selected ? (lang === 'bn' ? selected.bn : selected.name) : t('onboardAreaNone')}
         </div>
       )}
       {query && (
-        <div className="max-h-56 overflow-y-auto rounded-xl bg-surface-2">
+        <div className="max-h-56 overflow-y-auto rounded-xl border border-line bg-surface shadow-sm">
           {results.length === 0 && (
-            <div className="px-4 py-3 text-sm text-white/40">{t('noSearchResults')}</div>
+            <div className="px-4 py-3 text-sm text-muted">{t('noSearchResults')}</div>
           )}
           {results.map((area) => (
             <button
@@ -42,12 +42,12 @@ export function AreaPicker({ value, onChange, placeholder }: AreaPickerProps) {
                 onChange(area);
                 setQuery('');
               }}
-              className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm hover:bg-white/5 ${
-                area.code === value ? 'text-accent' : 'text-white'
+              className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm hover:bg-surface-2 ${
+                area.code === value ? 'text-accent' : 'text-ink'
               }`}
             >
               <span>{lang === 'bn' ? area.bn : area.name}</span>
-              <span className="text-xs text-white/40">{lang === 'bn' ? area.name : area.bn}</span>
+              <span className="text-xs text-muted">{lang === 'bn' ? area.name : area.bn}</span>
             </button>
           ))}
         </div>

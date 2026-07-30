@@ -10,11 +10,15 @@ export function PersonStatusCard({ event }: { event: SetuEvent }) {
   const safe = event.st === 'safe';
 
   return (
-    <div className="rounded-2xl bg-surface p-4">
+    <div
+      className={`rounded-2xl border border-line bg-surface p-4 shadow-sm ${
+        safe ? 'border-l-4 border-l-safe' : 'border-l-4 border-l-need'
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-semibold text-white">{event.n || t('unknownName')}</p>
-          <p className="text-xs text-white/50">{areaLabel(event.gh, lang) || t('unknownArea')}</p>
+          <p className="truncate font-semibold text-ink">{event.n || t('unknownName')}</p>
+          <p className="text-xs text-muted">{areaLabel(event.gh, lang) || t('unknownArea')}</p>
         </div>
         <TrustBadge event={event} />
       </div>
@@ -27,13 +31,13 @@ export function PersonStatusCard({ event }: { event: SetuEvent }) {
           {event.st ? statusLabel(event.st) : ''}
         </span>
         {event.cat && (
-          <span className="text-xs text-white/60">
+          <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">
             {categoryIcon(event.cat)} {categoryLabel(event.cat)}
           </span>
         )}
-        <span className="ml-auto whitespace-nowrap text-xs text-white/40">{timeAgo(event.ts, lang)}</span>
+        <span className="ml-auto whitespace-nowrap text-xs text-muted">{timeAgo(event.ts, lang)}</span>
       </div>
-      {event.msg && <p className="mt-2 text-sm text-white/70">{event.msg}</p>}
+      {event.msg && <p className="mt-2 text-sm leading-relaxed text-ink/80">{event.msg}</p>}
     </div>
   );
 }
@@ -44,11 +48,15 @@ export function MissingCard({ event }: { event: SetuEvent }) {
   const positive = event.pst === 'found' || event.pst === 'seen';
 
   return (
-    <div className="rounded-2xl bg-surface p-4">
+    <div
+      className={`rounded-2xl border border-line bg-surface p-4 shadow-sm ${
+        positive ? 'border-l-4 border-l-safe' : 'border-l-4 border-l-need'
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-semibold text-white">{event.pn || t('unknownName')}</p>
-          <p className="text-xs text-white/50">{areaLabel(event.gh, lang) || t('unknownArea')}</p>
+          <p className="truncate font-semibold text-ink">{event.pn || t('unknownName')}</p>
+          <p className="text-xs text-muted">{areaLabel(event.gh, lang) || t('unknownArea')}</p>
         </div>
         <TrustBadge event={event} />
       </div>
@@ -60,9 +68,9 @@ export function MissingCard({ event }: { event: SetuEvent }) {
         >
           {event.pst ? personStatusLabel(event.pst) : ''}
         </span>
-        <span className="ml-auto whitespace-nowrap text-xs text-white/40">{timeAgo(event.ts, lang)}</span>
+        <span className="ml-auto whitespace-nowrap text-xs text-muted">{timeAgo(event.ts, lang)}</span>
       </div>
-      {event.msg && <p className="mt-2 text-sm text-white/70">{event.msg}</p>}
+      {event.msg && <p className="mt-2 text-sm leading-relaxed text-ink/80">{event.msg}</p>}
     </div>
   );
 }
@@ -73,13 +81,13 @@ export function BulletinCard({ event }: { event: SetuEvent }) {
   const area = areaLabel(event.gh, lang);
 
   return (
-    <div className="rounded-2xl bg-surface p-4">
+    <div className="rounded-2xl border border-accent/20 bg-surface p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
-        {area && <p className="text-xs text-white/50">{area}</p>}
+        {area && <p className="text-xs text-muted">{area}</p>}
         <TrustBadge event={event} />
       </div>
-      {event.msg && <p className="mt-2 text-sm text-white/90">{event.msg}</p>}
-      <p className="mt-2 whitespace-nowrap text-xs text-white/40">{timeAgo(event.ts, lang)}</p>
+      {event.msg && <p className="mt-2 text-sm leading-relaxed text-ink">{event.msg}</p>}
+      <p className="mt-2 whitespace-nowrap text-xs text-muted">{timeAgo(event.ts, lang)}</p>
     </div>
   );
 }

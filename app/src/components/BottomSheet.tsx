@@ -16,11 +16,11 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
         type="button"
         aria-label="close"
         onClick={onClose}
-        className="absolute inset-0 bg-black/60"
+        className="absolute inset-0 bg-ink/35 backdrop-blur-[2px]"
       />
-      <div className="relative z-10 max-h-[85vh] w-full overflow-y-auto rounded-t-3xl bg-surface p-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
-        <h2 className="mb-4 text-lg font-semibold text-white">{title}</h2>
+      <div className="relative z-10 max-h-[85vh] w-full overflow-y-auto rounded-t-3xl border border-line bg-surface p-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] shadow-2xl">
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line" />
+        <h2 className="mb-4 text-lg font-semibold text-ink">{title}</h2>
         {children}
       </div>
     </div>
