@@ -506,6 +506,10 @@ export const dict = {
     bn: 'জুলাই হ্যাকাথন ২০২৬-এ তৈরি, ২০২৪ সালের ইন্টারনেট বন্ধের অভিজ্ঞতাকে স্মরণ করে।',
     en: 'Built during the July Hackathon 2026, in honor of the 2024 internet-shutdown experience.',
   },
+  infoCredit: {
+    bn: 'তৈরি করেছেন আসিফ ইশতিয়াক',
+    en: 'Built by Asif Istiaque',
+  },
   moreGuide: { bn: 'জরুরি গাইড', en: 'Emergency guide' },
   moreHistory: { bn: 'আমার ইতিহাস', en: 'My history' },
   moreCircle: { bn: 'আমার সার্কেল', en: 'My Circle' },

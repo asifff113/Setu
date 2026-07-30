@@ -373,6 +373,7 @@ export function InfoScreen() {
           {t('infoSourceLink')}
         </a>
         <p className="mt-3 text-xs text-muted">{t('infoLicense')}</p>
+        <p className="mt-1 text-xs font-semibold text-ink/70">{t('infoCredit')}</p>
       </section>
 
       <p className="px-1 text-center text-xs text-muted">{t('infoBuiltFor')}</p>
