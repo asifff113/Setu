@@ -3,6 +3,22 @@ import { encodeBundle } from './bundle';
 import { ingestBundleBytes } from './ingestBundleBytes';
 import type { SetuEvent } from '@setu/shared';
 
+function makeEvent(id: string, ts: number): SetuEvent {
+  return {
+    v: 1,
+    t: 'checkin',
+    id,
+    ts,
+    ttl: 259200,
+    gh: '',
+    au: 'a_test_author',
+    n: 'Test User',
+    st: 'safe',
+    msg: 'I am safe',
+    sig: 'sig_dummy',
+  };
+}
+
 describe('ingestBundleBytes', () => {
   it('returns null on empty or oversized input', async () => {
     const resEmpty = await ingestBundleBytes(new Uint8Array(0));
@@ -13,32 +29,16 @@ describe('ingestBundleBytes', () => {
   });
 
   it('decodes and ingests valid Uint8Array bundle', async () => {
-    const dummyEvent: SetuEvent = {
-      id: 'e_test_ingest_1',
-      author: 'a_test_author',
-      created_at: 1700000000,
-      kind: 'safe',
-      payload: { name: 'Test User', text: 'I am safe' },
-      sig: 'sig_dummy',
-    };
-    const bundleBytes = await encodeBundle([dummyEvent]);
+    const bundleBytes = await encodeBundle([makeEvent('e_test_ingest_1', 1700000000)]);
     const res = await ingestBundleBytes(bundleBytes);
     expect(res).not.toBeNull();
   });
 
   it('decodes and ingests base64 string bundle', async () => {
-    const dummyEvent: SetuEvent = {
-      id: 'e_test_ingest_2',
-      author: 'a_test_author',
-      created_at: 1700000001,
-      kind: 'safe',
-      payload: { name: 'Test User', text: 'I am safe' },
-      sig: 'sig_dummy',
-    };
-    const bundleBytes = await encodeBundle([dummyEvent]);
+    const bundleBytes = await encodeBundle([makeEvent('e_test_ingest_2', 1700000001)]);
     let binary = '';
     for (let i = 0; i < bundleBytes.length; i++) {
-      binary += String.fromCharCode(bundleBytes[i]);
+      binary += String.fromCharCode(bundleBytes[i]!);
     }
     const base64 = btoa(binary);
 

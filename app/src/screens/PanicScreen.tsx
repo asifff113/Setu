@@ -5,13 +5,13 @@ import { useAppStore } from '../store/appStore';
 import { useEventsStore } from '../store/eventsStore';
 import type { SetuCategory } from '@setu/shared';
 
-const CATEGORIES: { cat: SetuCategory; labelKey: string; icon: string }[] = [
-  { cat: 'med', labelKey: 'catMed', icon: '🩺' },
-  { cat: 'rescue', labelKey: 'catRescue', icon: '🛟' },
-  { cat: 'food', labelKey: 'catFood', icon: '🍞' },
-  { cat: 'water', labelKey: 'catWater', icon: '💧' },
-  { cat: 'shelter', labelKey: 'catShelter', icon: '⛺' },
-  { cat: 'other', labelKey: 'catOther', icon: '📦' },
+const CATEGORIES: { cat: SetuCategory; icon: string }[] = [
+  { cat: 'med', icon: '🩺' },
+  { cat: 'rescue', icon: '🛟' },
+  { cat: 'food', icon: '🍞' },
+  { cat: 'water', icon: '💧' },
+  { cat: 'shelter', icon: '⛺' },
+  { cat: 'other', icon: '📦' },
 ];
 
 function nowSeconds(): number {
@@ -19,7 +19,7 @@ function nowSeconds(): number {
 }
 
 export function PanicScreen() {
-  const { t } = useI18n();
+  const { t, categoryLabel } = useI18n();
   const navigate = useNavigate();
   const settings = useAppStore((s) => s.settings);
   const publish = useEventsStore((s) => s.publish);
@@ -243,7 +243,7 @@ export function PanicScreen() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 flex-1">
-              {CATEGORIES.map(({ cat, labelKey, icon }) => (
+              {CATEGORIES.map(({ cat, icon }) => (
                 <div
                   key={cat}
                   className="relative rounded-2xl bg-need/90 p-4 flex flex-col items-center justify-center overflow-hidden active:scale-95 transition-transform"
@@ -260,7 +260,7 @@ export function PanicScreen() {
                     />
                   )}
                   <span className="text-4xl mb-1">{icon}</span>
-                  <span className="text-lg font-bold text-center">{t(labelKey as any)}</span>
+                  <span className="text-lg font-bold text-center">{categoryLabel(cat)}</span>
                   <span className="mt-1 text-[10px] font-medium bg-black/30 px-2 py-0.5 rounded-full">
                     {holdingTarget === cat ? `${holdProgress}%` : t('panicHoldToConfirm')}
                   </span>

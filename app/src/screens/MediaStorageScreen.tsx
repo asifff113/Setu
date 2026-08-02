@@ -5,6 +5,7 @@ import { useI18n } from '../i18n';
 export function MediaStorageScreen() {
   const { t } = useI18n();
   const [persisted, setPersisted] = useState<boolean | null>(null);
+  const [rows, setRows] = useState<BlobCacheRow[]>([]);
   const total = useMemo(() => rows.reduce((sum, row) => sum + row.blob.size, 0), [rows]);
 
   async function refresh(): Promise<void> {

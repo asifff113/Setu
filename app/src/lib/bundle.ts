@@ -54,8 +54,10 @@ async function pipeThrough(
   const writer = transform.writable.getWriter();
   // Cast at the boundary: our buffers are always ArrayBuffer-backed, but TS 5.7
   // widens Uint8Array to ArrayBufferLike (which BufferSource excludes).
-  void writer.write(bytes as BufferSource);
-  void writer.close();
+  // Failures surface via the readable side in drain(); swallow them here so a
+  // garbled stream can't also produce an unhandled promise rejection.
+  writer.write(bytes as BufferSource).catch(() => {});
+  writer.close().catch(() => {});
   return drain(transform.readable as ReadableStream<Uint8Array>, maxBytes);
 }
 

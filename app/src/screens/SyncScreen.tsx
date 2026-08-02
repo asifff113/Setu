@@ -119,7 +119,13 @@ export function SyncScreen() {
     setNfcStatus('writing');
     try {
       const httpUrl = nodeWsToHttpUrl(nodeUrl);
-      const ndef = new (window as any).NDEFReader();
+      const NDEFReaderCtor = (
+        window as Window & {
+          NDEFReader?: new () => { write: (message: unknown) => Promise<void> };
+        }
+      ).NDEFReader;
+      if (!NDEFReaderCtor) throw new Error('NDEFReader unavailable');
+      const ndef = new NDEFReaderCtor();
       await ndef.write({
         records: [{ recordType: 'url', data: httpUrl }],
       });
@@ -193,7 +199,7 @@ export function SyncScreen() {
 
         let binary = '';
         for (let i = 0; i < bytes.length; i++) {
-          binary += String.fromCharCode(bytes[i]);
+          binary += String.fromCharCode(bytes[i]!);
         }
         const base64 = btoa(binary);
 
@@ -595,7 +601,7 @@ export function SyncScreen() {
                     const bundleBytes = await encodeBundle(filterForBundle(events, 'all', myGh));
                     let binary = '';
                     for (let i = 0; i < bundleBytes.length; i++) {
-                      binary += String.fromCharCode(bundleBytes[i]);
+                      binary += String.fromCharCode(bundleBytes[i]!);
                     }
                     await HubModePlugin.updateHubBundle({ base64: btoa(binary) });
                     const res = await HubModePlugin.startHub();

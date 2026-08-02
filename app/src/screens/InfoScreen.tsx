@@ -53,6 +53,7 @@ export function InfoScreen() {
   const exitGuestMode = useAppStore((state) => state.exitGuestMode);
   const [guestInputName, setGuestInputName] = useState('');
   const [showGuestForm, setShowGuestForm] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<'saved' | 'error' | null>(null);
 
   const currentArea = useMemo(
     () => (settings?.areaCode ? findAreaByCode(settings.areaCode) : undefined),

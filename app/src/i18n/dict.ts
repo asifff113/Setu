@@ -802,6 +802,14 @@ export const dict = {
   smsGatewayTitle: { bn: '📱 SMS গেটওয়ে মোড (Field Edition)', en: '📱 SMS Gateway Mode (Field Edition)' },
   smsGatewayHint: { bn: 'বাটন ফোনের ব্যবহারকারীদের সাধারণ SMS সেতুর নেটওয়ার্কে নিয়ে আসুন।', en: 'Bridge feature-phone users to the Setu network via SMS.' },
   backupStatusTitle: { bn: '💾 স্বয়ংক্রিয় ব্যাকআপ:', en: '💾 Automatic Backup:' },
+
+  // Feature G - Direct WebRTC Sync
+  webrtcSyncTitle: { bn: 'সরাসরি ডিভাইস সিঙ্ক (WebRTC)', en: 'Direct device sync (WebRTC)' },
+  webrtcSyncHint: { bn: 'একই ওয়াই-ফাই বা হটস্পটে থাকা দুটি ফোন QR কোড স্ক্যান করে সরাসরি সিঙ্ক করতে পারে — ইন্টারনেট লাগবে না।', en: 'Two phones on the same Wi-Fi or hotspot can sync directly by scanning QR codes — no internet needed.' },
+  webrtcShowOffer: { bn: 'অফার QR দেখান', en: 'Show offer QR' },
+  webrtcScanOffer: { bn: 'অফার QR স্ক্যান করুন', en: 'Scan offer QR' },
+  webrtcShowAnswer: { bn: 'এই উত্তর QR অন্য ফোনে স্ক্যান করান', en: 'Have the other phone scan this answer QR' },
+  webrtcScanAnswer: { bn: 'উত্তর QR স্ক্যান করুন', en: 'Scan answer QR' },
 } as const satisfies Record<string, Entry>;
 
 export type DictKey = keyof typeof dict;

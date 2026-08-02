@@ -1,19 +1,43 @@
 import { Directory, Filesystem } from '@capacitor/filesystem';
-import type { SetuEvent } from '@setu/shared';
-import { db } from '../db';
+import { fromBase64url, toBase64url, type SetuEvent } from '@setu/shared';
 import { ingestEvents } from '../db/events';
-import { getIdentity, saveIdentity, type Identity } from '../db/identity';
-import { getSettings, saveSettings, type UserSettings } from '../db/settings';
+import { db, type IdentityRow, type SettingsRow } from '../db/schema';
+import { readSettings, writeSettings } from '../db/settings';
 import { decodeBundle, encodeBundle } from './bundle';
 import { isNative } from './platform';
 
 export const BACKUP_DIR = 'backup';
 export const MAX_EVENTS_PER_BACKUP_FILE = 5000;
 
+/** JSON-safe snapshot of the identity row — key bytes travel as base64url. */
+interface IdentityBackup {
+  secretKey: string;
+  publicKey: string;
+  author: string;
+  createdAt: number;
+}
+
+function bytesToStdBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]!);
+  }
+  return btoa(binary);
+}
+
+function stdBase64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
 export function chunkEventsForBackup(events: SetuEvent[], maxPerChunk = MAX_EVENTS_PER_BACKUP_FILE): SetuEvent[][] {
   if (events.length === 0) return [];
   // Sorted newest first
-  const sorted = [...events].sort((a, b) => b.created_at - a.created_at);
+  const sorted = [...events].sort((a, b) => b.ts - a.ts);
   const chunks: SetuEvent[][] = [];
   for (let i = 0; i < sorted.length; i += maxPerChunk) {
     chunks.push(sorted.slice(i, i + maxPerChunk));
@@ -25,8 +49,8 @@ export async function performAutoBackup(): Promise<string | null> {
   if (!isNative()) return null;
   try {
     const events = await db.events.toArray();
-    const identity = await getIdentity();
-    const settings = await getSettings();
+    const identity = await db.meta.get('identity');
+    const settings = await readSettings();
 
     // Ensure directory exists
     try {
@@ -36,38 +60,35 @@ export async function performAutoBackup(): Promise<string | null> {
     }
 
     // Save Identity
-    if (identity) {
-      const identityJson = JSON.stringify(identity);
+    if (identity && identity.key === 'identity') {
+      const identityBackup: IdentityBackup = {
+        secretKey: toBase64url(identity.secretKey),
+        publicKey: toBase64url(identity.publicKey),
+        author: identity.author,
+        createdAt: identity.createdAt,
+      };
       await Filesystem.writeFile({
         path: `${BACKUP_DIR}/identity.bin`,
-        data: btoa(identityJson),
+        data: btoa(JSON.stringify(identityBackup)),
         directory: Directory.Data,
       });
     }
 
     // Save Settings
-    if (settings) {
-      const settingsJson = JSON.stringify(settings);
-      await Filesystem.writeFile({
-        path: `${BACKUP_DIR}/settings.json`,
-        data: btoa(settingsJson),
-        directory: Directory.Data,
-      });
-    }
+    await Filesystem.writeFile({
+      path: `${BACKUP_DIR}/settings.json`,
+      data: btoa(JSON.stringify(settings)),
+      directory: Directory.Data,
+    });
 
     // Save Event Log Chunks
     const chunks = chunkEventsForBackup(events);
-    for (let idx = 0; idx < chunks.length; idx++) {
-      const bundleBytes = await encodeBundle(chunks[idx]);
-      let binary = '';
-      for (let i = 0; i < bundleBytes.length; i++) {
-        binary += String.fromCharCode(bundleBytes[i]);
-      }
-      const base64 = btoa(binary);
+    for (const [idx, chunk] of chunks.entries()) {
+      const bundleBytes = await encodeBundle(chunk);
       const filename = `${BACKUP_DIR}/backup-${String(idx + 1).padStart(4, '0')}.setu`;
       await Filesystem.writeFile({
         path: filename,
-        data: base64,
+        data: bytesToStdBase64(bundleBytes),
         directory: Directory.Data,
       });
     }
@@ -110,8 +131,15 @@ export async function restoreBackup(): Promise<boolean> {
     try {
       const idRes = await Filesystem.readFile({ path: `${BACKUP_DIR}/identity.bin`, directory: Directory.Data });
       if (idRes && idRes.data) {
-        const idData = JSON.parse(atob(idRes.data as string)) as Identity;
-        await saveIdentity(idData);
+        const idData = JSON.parse(atob(idRes.data as string)) as IdentityBackup;
+        const row: IdentityRow = {
+          key: 'identity',
+          secretKey: fromBase64url(idData.secretKey),
+          publicKey: fromBase64url(idData.publicKey),
+          author: idData.author,
+          createdAt: idData.createdAt,
+        };
+        await db.meta.put(row);
       }
     } catch {
       /* ignore if missing */
@@ -121,8 +149,8 @@ export async function restoreBackup(): Promise<boolean> {
     try {
       const stRes = await Filesystem.readFile({ path: `${BACKUP_DIR}/settings.json`, directory: Directory.Data });
       if (stRes && stRes.data) {
-        const stData = JSON.parse(atob(stRes.data as string)) as UserSettings;
-        await saveSettings(stData);
+        const stData = JSON.parse(atob(stRes.data as string)) as SettingsRow;
+        await writeSettings(stData);
       }
     } catch {
       /* ignore if missing */
@@ -138,12 +166,7 @@ export async function restoreBackup(): Promise<boolean> {
     for (const file of bundleFiles) {
       const fileRes = await Filesystem.readFile({ path: `${BACKUP_DIR}/${file}`, directory: Directory.Data });
       if (fileRes && fileRes.data) {
-        const binary = atob(fileRes.data as string);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-          bytes[i] = binary.charCodeAt(i);
-        }
-        const events = await decodeBundle(bytes);
+        const events = await decodeBundle(stdBase64ToBytes(fileRes.data as string));
         if (events.length > 0) {
           await ingestEvents(events);
         }

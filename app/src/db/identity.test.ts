@@ -1,3 +1,6 @@
+// Must be first: the Dexie db singleton captures IndexedDB at module load.
+import 'fake-indexeddb/auto';
+
 import { describe, expect, it } from 'vitest';
 import {
   createGuestIdentity,
@@ -5,7 +8,6 @@ import {
   loadOrCreateIdentity,
   switchToPrimaryIdentity,
 } from './identity';
-import 'fake-indexeddb/auto';
 
 describe('identity management & guest mode', () => {
   it('creates and returns primary identity', async () => {

@@ -1,19 +1,23 @@
+// Must be first: the Dexie db singleton captures IndexedDB at module load.
+import 'fake-indexeddb/auto';
+
 import { createEvent, generateKeypair, type SetuEvent } from '@setu/shared';
 import { describe, expect, it } from 'vitest';
 import { encodeBundle } from './bundle';
 import { processSharedBundle } from './shareReceive';
-import 'fake-indexeddb/auto';
 
 const kp = generateKeypair();
 
 function sampleEvents(n: number): SetuEvent[] {
+  // Recent timestamps — ingestEvents drops events older than their TTL.
+  const now = Math.floor(Date.now() / 1000);
   const out: SetuEvent[] = [];
   for (let i = 0; i < n; i++) {
     out.push(
       createEvent(
         {
           t: 'checkin',
-          ts: 1_700_000_000 + i,
+          ts: now - n + i,
           gh: 'wh0r',
           st: 'safe',
           n: `User ${i}`,

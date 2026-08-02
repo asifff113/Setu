@@ -5,7 +5,7 @@ interface BatteryManager extends EventTarget {
   chargingTime: number;
   dischargingTime: number;
   level: number; // 0.0 to 1.0
-  onlevelchange: ((this: BatteryManager, ev: Event) => any) | null;
+  onlevelchange: ((this: BatteryManager, ev: Event) => unknown) | null;
 }
 
 interface NavigatorWithBattery extends Navigator {

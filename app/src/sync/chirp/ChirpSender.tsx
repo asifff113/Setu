@@ -232,7 +232,9 @@ export function ChirpSender({ events, author, onClose }: ChirpSenderProps) {
                     } else {
                       window.open(`sms:?body=${encodeURIComponent(linkUrl)}`, '_blank');
                     }
-                  } catch {}
+                  } catch {
+                    // Share sheet dismissed or blocked — nothing to recover.
+                  }
                 }}
                 className="w-full rounded-xl border border-white/20 bg-white/10 py-3 text-sm font-semibold text-white active:opacity-80"
               >

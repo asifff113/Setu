@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { useI18n } from '../i18n';
+import { useAppStore } from '../store/appStore';
 import { LanguageToggle } from './LanguageToggle';
 import { TabBar } from './TabBar';
 

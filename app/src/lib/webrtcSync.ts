@@ -90,7 +90,9 @@ export class DirectWebRtcSync {
     this.channel.send(`SIZE:${bundleBytes.length}`);
 
     for (let offset = 0; offset < bundleBytes.length; offset += CHUNK_SIZE) {
-      const chunk = bundleBytes.subarray(offset, offset + CHUNK_SIZE);
+      // Copy into a fresh ArrayBuffer-backed view — RTCDataChannel.send() won't
+      // accept a view typed over ArrayBufferLike.
+      const chunk = new Uint8Array(bundleBytes.subarray(offset, offset + CHUNK_SIZE));
       this.channel.send(chunk);
     }
     this.channel.send('EOF');
@@ -109,6 +111,11 @@ export class DirectWebRtcSync {
           this.incomingChunks = [];
         } else if (event.data === 'EOF') {
           const totalLength = this.incomingChunks.reduce((acc, c) => acc + c.length, 0);
+          if (expectedSize > 0 && totalLength !== expectedSize) {
+            // Incomplete transfer — discard rather than decode a truncated bundle.
+            this.incomingChunks = [];
+            return;
+          }
           const combined = new Uint8Array(totalLength);
           let offset = 0;
           for (const chunk of this.incomingChunks) {
