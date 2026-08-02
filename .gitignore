@@ -17,3 +17,13 @@ relay/data/
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+
+# Android / Gradle build artifacts
+app/android/.gradle/
+app/android/**/build/
+app/android/local.properties
+app/android/.idea/
+app/android/.cxx/
+app/android/captures/
+app/android/**/*.lock
+app/android/**/*.bin
