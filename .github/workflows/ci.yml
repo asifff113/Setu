@@ -39,6 +39,39 @@ jobs:
       - name: Audit production dependencies (fail only on critical)
         run: npm audit --omit=dev --audit-level=critical
 
+  android:
+    name: Android native build (play + field)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Capacitor 7's android library requires JDK 21 to compile.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Sync web build into the Android project
+        run: npm run cap:sync
+
+      - name: Assemble debug APKs (play + field flavors)
+        working-directory: app/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Assemble release APKs (unsigned, play + field flavors)
+        working-directory: app/android
+        run: ./gradlew assembleRelease --no-daemon
+
   docker:
     name: Docker build smoke test
     runs-on: ubuntu-latest

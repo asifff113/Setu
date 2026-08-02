@@ -34,7 +34,7 @@ class CourierService : Service(), SensorEventListener {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as? SensorManager
         stepSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
         stepSensor?.let {
-            sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_BACKGROUND)
+            sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
         }
         handler = Handler(Looper.getMainLooper())
     }

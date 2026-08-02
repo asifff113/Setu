@@ -23,7 +23,8 @@
     "test:relay": "npm run test -w relay",
     "lint": "npm run lint -w app && npm run lint -w relay && npm run lint -w shared",
     "typecheck:relay": "npm run build -w relay",
-    "gen:icons": "node scripts/gen-icons.mjs"
+    "gen:icons": "node scripts/gen-icons.mjs",
+    "gen:icons:android": "node scripts/gen-android-icons.mjs"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.10",

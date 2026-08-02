@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Setu writes exported .setu bundles and the shareable APK copy here
+         (Directory.Cache == context.cacheDir) before handing a content:// URI
+         to the share sheet. -->
+    <cache-path name="setu_cache" path="." />
+</paths>

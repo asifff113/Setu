@@ -59,7 +59,7 @@ class HubService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            const val channelName = "Setu Hub Service"
+            val channelName = "Setu Hub Service"
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 channelName,
@@ -119,7 +119,7 @@ class HubService : Service() {
                 return newFixedLengthResponse(Response.Status.OK, "text/html", html)
             }
 
-            const val html = "<html><body><h1>Setu Local Node Active</h1><p>Visit <a href='/sync'>/sync</a> for offline board transfer.</p></body></html>"
+            val html = "<html><body><h1>Setu Local Node Active</h1><p>Visit <a href='/sync'>/sync</a> for offline board transfer.</p></body></html>"
             return newFixedLengthResponse(Response.Status.OK, "text/html", html)
         }
     }

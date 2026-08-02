@@ -1,18 +1,19 @@
 package org.setu.app.plugins
 
 import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import android.util.Base64
-import androidx.core.content.ContextCompat
 import com.getcapacitor.JSObject
+import com.getcapacitor.PermissionState
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import com.getcapacitor.annotation.Permission
+import com.getcapacitor.annotation.PermissionCallback
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
+import android.util.Base64
 import java.io.ByteArrayInputStream
 
 @CapacitorPlugin(
@@ -118,6 +119,31 @@ class NearbySyncPlugin : Plugin() {
 
     @PluginMethod
     fun start(call: PluginCall) {
+        if (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context) != ConnectionResult.SUCCESS) {
+            call.reject("Nearby Sync unavailable: Google Play services missing or outdated", "UNAVAILABLE")
+            return
+        }
+        if (getPermissionState("location") != PermissionState.GRANTED ||
+            getPermissionState("bluetooth") != PermissionState.GRANTED
+        ) {
+            requestPermissionForAliases(arrayOf("location", "bluetooth"), call, "startPermissionCallback")
+            return
+        }
+        startAdvertisingAndDiscovery(call)
+    }
+
+    @PermissionCallback
+    private fun startPermissionCallback(call: PluginCall) {
+        if (getPermissionState("location") == PermissionState.GRANTED &&
+            getPermissionState("bluetooth") == PermissionState.GRANTED
+        ) {
+            startAdvertisingAndDiscovery(call)
+        } else {
+            call.reject("Nearby Sync permissions denied", "PERMISSION_DENIED")
+        }
+    }
+
+    private fun startAdvertisingAndDiscovery(call: PluginCall) {
         val endpointName = call.getString("endpointName", "Setu User") ?: "Setu User"
         val client = Nearby.getConnectionsClient(context)
 
@@ -165,9 +191,11 @@ class NearbySyncPlugin : Plugin() {
 
         try {
             val bytes = Base64.decode(base64, Base64.NO_WRAP)
-            val payload = Payload.fromBytes(bytes)
-
+            // Bundles can reach MAX_COMPRESSED_BUNDLE_BYTES (2 MiB), well above the
+            // ~32 KB bytes-payload limit, so this must go as a stream payload — a
+            // fresh stream per endpoint since Payload.fromStream is single-use.
             for (endpointId in connectedEndpoints) {
+                val payload = Payload.fromStream(ByteArrayInputStream(bytes))
                 Nearby.getConnectionsClient(context).sendPayload(endpointId, payload)
             }
             call.resolve()

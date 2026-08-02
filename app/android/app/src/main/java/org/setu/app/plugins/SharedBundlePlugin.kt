@@ -8,6 +8,7 @@ import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 
 @CapacitorPlugin(name = "SharedBundlePlugin")
@@ -36,23 +37,18 @@ class SharedBundlePlugin : Plugin() {
         try {
             val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
             inputStream?.use { stream ->
-                val buffer = ByteArray(MAX_COMPRESSED_BUNDLE_BYTES)
+                val output = ByteArrayOutputStream()
+                val chunk = ByteArray(64 * 1024)
                 var totalRead = 0
-                var read = stream.read(buffer, 0, buffer.size)
-                
-                // Read up to limit
-                val tempOutput = mutableListOf<Byte>()
+                var read = stream.read(chunk)
                 while (read != -1 && totalRead < MAX_COMPRESSED_BUNDLE_BYTES) {
-                    for (i in 0 until read) {
-                        tempOutput.add(buffer[i])
-                    }
+                    output.write(chunk, 0, read)
                     totalRead += read
-                    if (totalRead >= MAX_COMPRESSED_BUNDLE_BYTES) break
-                    read = stream.read(buffer, 0, buffer.size - totalRead)
+                    read = stream.read(chunk)
                 }
 
-                if (tempOutput.isNotEmpty()) {
-                    pendingBase64 = Base64.encodeToString(tempOutput.toByteArray(), Base64.NO_WRAP)
+                if (output.size() > 0) {
+                    pendingBase64 = Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP)
                 }
             }
         } catch (e: Exception) {

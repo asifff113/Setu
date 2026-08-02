@@ -36,7 +36,7 @@ class LoRaBridgePlugin : Plugin() {
             }
         }
 
-        override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothCharacteristic) {
+        override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
             if (characteristic.uuid == MESHTASTIC_FROMRADIO_UUID) {
                 val bytes = characteristic.value
                 val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
