@@ -4,11 +4,15 @@ import { useI18n } from '../i18n';
 
 export function MediaStorageScreen() {
   const { t } = useI18n();
-  const [rows, setRows] = useState<BlobCacheRow[]>([]);
+  const [persisted, setPersisted] = useState<boolean | null>(null);
   const total = useMemo(() => rows.reduce((sum, row) => sum + row.blob.size, 0), [rows]);
 
   async function refresh(): Promise<void> {
     setRows(await db.blobs.orderBy('createdAt').reverse().toArray());
+    if (typeof navigator !== 'undefined' && navigator.storage?.persisted) {
+      const isPersisted = await navigator.storage.persisted().catch(() => false);
+      setPersisted(isPersisted);
+    }
   }
 
   useEffect(() => {
@@ -25,6 +29,11 @@ export function MediaStorageScreen() {
         <p className="text-3xl font-bold">{Math.ceil(total / 1024)} KB</p>
         <p className="mt-1 text-sm text-white/75">{rows.length} {t('mediaStorageFiles')}</p>
       </div>
+      {persisted !== null && (
+        <div className="rounded-xl border border-line bg-surface p-3 text-xs text-muted">
+          {persisted ? t('storageProtected') : t('storageBestEffort')}
+        </div>
+      )}
       {rows.map((row) => (
         <div key={row.h} className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
           <span className="text-xl" aria-hidden="true">{row.mime.startsWith('image/') ? '📷' : '🎙️'}</span>

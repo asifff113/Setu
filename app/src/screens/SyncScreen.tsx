@@ -182,6 +182,7 @@ export function SyncScreen() {
           <div className="rounded-2xl border border-accent/20 bg-accent/5 p-4">
             <p className="text-sm font-bold text-ink">{t('syncBeamTitle')}</p>
             <p className="mt-2 text-sm leading-relaxed text-muted">{t('syncBeamHint')}</p>
+            <p className="mt-1 text-xs text-muted font-medium">{t('syncCourierHint')}</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -320,6 +321,7 @@ export function SyncScreen() {
             {t('syncImport')}
           </button>
         </div>
+        <p className="mt-2 text-xs leading-relaxed text-muted">{t('syncExportBluetoothHint')}</p>
         {fileMsg && (
           <p className={`mt-3 text-xs ${fileMsg.tone === 'ok' ? 'text-safe' : 'text-need'}`}>
             {fileMsg.text}

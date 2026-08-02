@@ -39,6 +39,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           readSettings(),
         ]);
         set({ identity, settings, ready: true });
+        if (typeof navigator !== 'undefined' && navigator.storage?.persist) {
+          void navigator.storage.persist().catch(() => {});
+        }
       })();
     }
     return hydration;

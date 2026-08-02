@@ -692,6 +692,109 @@ export const dict = {
     bn: 'আরও প্রশ্ন থাকলে “আরও” পাতার “সাধারণ প্রশ্ন” অংশ দেখুন, আর বিপর্যয়ের সময়ের করণীয় জানতে “জরুরি গাইড” খুলুন।',
     en: 'More questions? See “Common questions” on the More page, and open “Emergency guide” for what to do during a disaster.',
   },
+
+  // Feature E - Storage persistence
+  storageProtected: { bn: 'সংরক্ষণাগার: সুরক্ষিত (ব্রাউজার ডেটা মুছবে না)', en: 'Storage: protected' },
+  storageBestEffort: { bn: 'সংরক্ষণাগার: সাধারণ (ব্রাউজার ডেটা মুছতে পারে)', en: 'Storage: best-effort (browser may reclaim it)' },
+
+  // Feature B - Bluetooth / Quick share
+  syncExportBluetoothHint: {
+    bn: 'শেয়ার শিটের মাধ্যমে এটি ইন্টারনেট ছাড়াই পাঠানো যাবে — অন্য ফোনের অ্যান্ড্রয়েডে ব্লুটুথ বা Quick Share বেছে নিন।',
+    en: "The share sheet can send this with no internet — choose Bluetooth or Quick Share on the other phone's Android.",
+  },
+  manualNoInternetTitle: { bn: 'ইন্টারনেট ছাড়া বোর্ড পাঠানো', en: 'Sending the board without internet' },
+  manualNoInternetBody: {
+    bn: '১. সিঙ্ক স্ক্রিনে গিয়ে ফাইল অংশে “রপ্তানি” চাপুন।\n২. শেয়ার অপশন থেকে Bluetooth বা Quick Share নির্বাচন করুন।\n৩. গ্রহণকারী ফাইলটি পেয়ে সেতুর মাধ্যমে খুলবেন বা সেতুতে শেয়ার করবেন।',
+    en: '1. Go to Sync screen and tap file “Export”.\n2. Select Bluetooth or Quick Share from the share sheet.\n3. The receiver opens the file in Setu or shares the file to Setu.',
+  },
+  manualNoInternetStep1: { bn: '১. সিঙ্ক স্ক্রিনে গিয়ে ফাইল অংশে “রপ্তানি” চাপুন।', en: '1. Go to Sync screen and tap file “Export”.' },
+  manualNoInternetStep2: { bn: '২. শেয়ার অপশন থেকে Bluetooth বা Quick Share নির্বাচন করুন।', en: '2. Select Bluetooth or Quick Share from the share sheet.' },
+  manualNoInternetStep3: { bn: '৩. গ্রহণকারী ফাইলটি পেয়ে সেতুর মাধ্যমে খুলবেন বা সেতুতে শেয়ার করবেন।', en: '3. The receiver opens the file in Setu or shares the file to Setu.' },
+
+  // Feature C - Courier model
+  manualCourierTitle: { bn: 'আপনার ফোনই খবর পৌঁছে দেয়', en: 'Your phone carries the news' },
+  manualCourierBody: {
+    bn: 'কারো সাথে সিঙ্ক (QR বিম, শব্দ বা ফাইল) করলে সম্পূর্ণ বোর্ডের খবর আদান-প্রদান হয়। এক এলাকা থেকে অন্য এলাকায় হেঁটে সিঙ্ক করলেই সব খবর আপনার সাথে চলে যাবে — সরাসরি ইন্টারনেট বা যোগাযোগের প্রয়োজন নেই।',
+    en: "Syncing with anyone — QR Beam, chirp, or file share — exchanges the whole board, both directions, so walking between two neighborhoods and syncing in each moves everyone's status with you; you do not need internet or a direct meeting between the two people.",
+  },
+  manualCourierExample: {
+    bn: 'উদাহরণঃ সকালে ক খ-কে বিম করল; বিকালে নদী পার হয়ে খ গ-কে বিম করল; এখন গ জেনে গেল ক নিরাপদ আছে।',
+    en: 'Example: A beams to B in the morning; B beams to C across the river in the evening; C now knows A is safe.',
+  },
+  manualCourierEncourage: { bn: 'অভ্যাসটি তৈরি করুন: যাদের পাশ দিয়ে যাবেন তাদের সাথে সিঙ্ক করুন।', en: 'Encourage the habit: sync with anyone you pass.' },
+  syncCourierHint: { bn: 'প্রতিটি সিঙ্ক সবার নতুন তথ্য বহন করে — আপনিই নেটওয়ার্ক।', en: "Every sync carries everyone's updates — you are the network." },
+
+  // Feature L - Loudspeaker broadcast
+  chirpLoudspeakerTitle: { bn: '📢 মাইক/লাউডস্পিকার ব্রডকাস্ট', en: '📢 Loudspeaker broadcast' },
+  chirpLoudspeakerHint: {
+    bn: 'ফোনটি মাইকের সামনে ধরুন এবং ক্রমাগত শব্দ বাজিয়ে এলাকার সবার ফোনে আপডেট ছড়িয়ে দিন।',
+    en: 'Hold phone to the PA microphone to broadcast updates to nearby phones.',
+  },
+  chirpLoudspeakerInstruction: {
+    bn: 'প্রথমে ঘোষণা দিন যে মানুষ যেন সেতু -> সিঙ্ক -> চির্প -> শুনতে থাকুন খুলবেন। তারপর শব্দ বাজান।',
+    en: 'Announce first that people should open Setu → Sync → Chirp → Listen. Then play continuous sound.',
+  },
+  manualLoudspeakerTitle: { bn: 'মাইক বা লাউডস্পিকারে শব্দ সম্প্রচার', en: 'Loudspeaker chirp broadcast' },
+  manualLoudspeakerBody: {
+    bn: 'মাইক বা লাউডস্পিকার দিয়ে শব্দ বাজিয়ে এক সাথে বহু ফোনে তথ্য পাঠানো যায়। প্রথমে সবাইকে সেতু অ্যাপ খুলে সিঙ্ক -> চির্প -> শুনতে বলুন। তারপর লাউডস্পিকার মোডে শব্দ বাজান।',
+    en: 'Village PA systems and loudspeakers can broadcast chirps to many listening phones. Announce first that people should open Setu → Sync → Chirp → Listen, then play in loudspeaker mode.',
+  },
+  manualLoudspeakerCaveat: {
+    bn: 'দ্রষ্টব্যঃ প্রবল বৃষ্টি, বাতাস বা জেনারেটরের প্রচণ্ড শব্দে সংযোগ ব্যাহত হতে পারে।',
+    en: 'Note: Heavy rain, wind, or generator noise can defeat acoustic broadcast.',
+  },
+
+  // Feature H - Panic Mode
+  panicTitle: { bn: 'জরুরি প্যানিক মোড', en: 'Panic Mode' },
+  panicSubtitle: { bn: 'এক হাতে স্পর্শ করে আপনার অবস্থা আপডেট করুন', en: 'One-hand status update for emergencies' },
+  panicSafe: { bn: 'নিরাপদ (SAFE)', en: 'SAFE' },
+  panicHelp: { bn: 'সাহায্য চান (HELP)', en: 'NEED HELP' },
+  panicMissing: { bn: 'নিখোঁজ ব্যক্তি (MISSING)', en: 'MISSING PERSON' },
+  panicHoldToConfirm: { bn: 'নিশ্চিত করতে ধরে রাখুন', en: 'Hold to confirm' },
+  panicSuccessMessage: { bn: 'অবস্থা সফলভাবে পাঠানো হয়েছে!', en: 'Status reported successfully!' },
+  panicShortcutSafe: { bn: 'আমি নিরাপদ (প্যানিক)', en: "I'm SAFE (Panic)" },
+  panicShortcutHelp: { bn: 'সাহায্য (প্যানিক)', en: 'Help (Panic)' },
+
+  // Feature A - Web Share Target
+  syncSharedReceived: { bn: 'শেয়ার মারফত গৃহীত', en: 'Received via share' },
+
+  // Feature D - Printable Poster QR
+  posterTitle: { bn: '🖨️ প্রিন্টযোগ্য পোস্টার (QR)', en: '🖨️ Printable Poster (QR)' },
+  posterHint: { bn: 'একটি এলাকায় টাঙানোর জন্য পোস্টার প্রিন্ট করুন; যে কেউ স্ক্যান করে ইভেন্ট পাবে।', en: 'Print a static QR poster to tape on shelter walls; anyone scans it to ingest events.' },
+  posterPrintButton: { bn: 'পোস্টার প্রিন্ট করুন', en: 'Print poster' },
+  posterScanInstruction: { bn: 'সেতু অ্যাপ খুলুন → সিঙ্ক → বিম/স্ক্যান চাপুন', en: 'Open Setu app → Sync → Beam/Scan' },
+  posterEventCount: { bn: 'এই পোস্টারে ইভেন্ট সংখ্যা:', en: 'Events on this poster:' },
+  posterGeneratedAt: { bn: 'তৈরির সময়:', en: 'Generated at:' },
+
+  // Feature J & K - Link Beam & Lifeboat
+  linkBeamShareAction: { bn: 'লিংক হিসেবে শেয়ার করুন', en: 'Share as link' },
+  linkBeamTitle: { bn: 'লিংক বিম (ইভেন্ট ইন লিংক)', en: 'Link Beam' },
+  linkBeamIngesting: { bn: 'ইভেন্ট প্রক্রিয়া করা হচ্ছে...', en: 'Ingesting event...' },
+  linkBeamSuccess: { bn: 'ইভেন্ট সফলভাবে গ্রহণ করা হয়েছে!', en: 'Event ingested successfully!' },
+  linkBeamError: { bn: 'লিংকের ডেটা সঠিক নয় বা বিকৃত।', en: 'Link payload invalid or corrupted.' },
+  lifeboatTitle: { bn: 'ব্যাটারি শেষ পর্যায় — আপনার স্থিতি হস্তান্তর করুন', en: 'Battery critical — hand off your status now' },
+  lifeboatBody: { bn: 'ফোন বন্ধ হওয়ার আগে আপনার সর্বশেষ অবস্থা কাছের অন্য ফোনে হস্তান্তর করুন।', en: 'Before your battery runs out, show or share this QR code to a nearby phone.' },
+  lifeboatDismiss: { bn: 'পরবর্তীতে', en: 'Dismiss' },
+
+  // Feature I - Guest Identity
+  guestModeActiveBanner: { bn: 'মেহমান মোড:', en: 'Guest:' },
+  guestModeSwitchBack: { bn: 'মালিক মোডে ফিরুন', en: 'tap to switch back' },
+  guestModeLendPhone: { bn: 'কারো কাছে ফোন ধার দিন (মেহমান মোড)', en: 'Lend this phone (Guest mode)' },
+  guestModeHint: { bn: 'মেহমানের জন্য সাময়িক কি-পেয়ার তৈরি করবে যা মূল প্রোফাইলকে পরিবর্তন করবে না।', en: 'Generates a fresh temporary keypair for the borrower without altering your primary identity.' },
+
+  // Feature F - NFC Tag Writer
+  nfcWriteButton: { bn: 'NFC ট্যাগে নোড ঠিকানা লিখুন', en: 'Write node address to NFC tag' },
+  nfcWritingPrompt: { bn: 'ফোনের পেছনে NFC ট্যাগ ধরুন...', en: 'Hold an NFC tag to the phone...' },
+  nfcWriteSuccess: { bn: 'NFC ট্যাগে ঠিকানা সফলভাবে লেখা হয়েছে!', en: 'Node URL written to NFC tag successfully!' },
+  nfcWriteFailure: { bn: 'NFC ট্যাগে লিখতে ব্যর্থ হয়েছে।', en: 'Failed to write to NFC tag.' },
+
+  // Feature G - WebRTC Hotspot Sync
+  webrtcSyncTitle: { bn: 'সরাসরি WebRTC সিঙ্ক (হটস্পট)', en: 'Direct WebRTC sync (Hotspot)' },
+  webrtcSyncHint: { bn: 'একই হটস্পটে থাকা দুই ফোনের মধ্যে কোনো ল্যাপটপ ছাড়াই সিঙ্ক করুন।', en: 'Sync two phones directly over one hotspot with no laptop.' },
+  webrtcShowOffer: { bn: 'অফার QR দেখান', en: 'Show offer QR' },
+  webrtcScanOffer: { bn: 'অফার QR স্ক্যান করুন', en: 'Scan offer QR' },
+  webrtcShowAnswer: { bn: 'উত্তর QR দেখান', en: 'Show answer QR' },
+  webrtcScanAnswer: { bn: 'উত্তর QR স্ক্যান করুন', en: 'Scan answer QR' },
 } as const satisfies Record<string, Entry>;
 
 export type DictKey = keyof typeof dict;
