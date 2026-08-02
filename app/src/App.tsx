@@ -50,6 +50,16 @@ export default function App() {
   }, [ready]);
 
   useEffect(() => {
+    if (!ready) return;
+    void (async () => {
+      const { checkAndProcessSharedBundle } = await import('./lib/sharedBundle');
+      const { processCourierQueue } = await import('./lib/courier');
+      await checkAndProcessSharedBundle();
+      await processCourierQueue();
+    })();
+  }, [ready]);
+
+  useEffect(() => {
     if (!appearance) return;
     document.documentElement.dataset.theme = appearance.batterySaver ? 'dark' : appearance.theme;
     document.documentElement.classList.toggle('battery-saver', appearance.batterySaver);

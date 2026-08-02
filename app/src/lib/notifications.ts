@@ -1,8 +1,29 @@
 import { isPinnedPublisher, type SetuEvent } from '@setu/shared';
 import { db } from '../db/schema';
 import { useAppStore } from '../store/appStore';
+import { isNative } from './platform';
 
 function show(title: string, body: string, tag: string): void {
+  if (isNative()) {
+    void (async () => {
+      try {
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              title,
+              body,
+              id: Math.floor(Math.random() * 1000000),
+              extra: { tag },
+            },
+          ],
+        });
+      } catch {
+        /* ignore */
+      }
+    })();
+    return;
+  }
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
   try {
     new Notification(title, { body, tag, icon: '/icons/icon-192.png' });
@@ -13,7 +34,8 @@ function show(title: string, body: string, tag: string): void {
 
 /** Notify only for high-signal relationships, never for generic board noise. */
 export async function notifyIncoming(events: SetuEvent[]): Promise<void> {
-  if (!events.length || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  if (!events.length) return;
+  if (!isNative() && (typeof Notification === 'undefined' || Notification.permission !== 'granted')) return;
   const app = useAppStore.getState();
   const settings = app.settings;
   const author = app.identity?.author;

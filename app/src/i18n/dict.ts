@@ -788,13 +788,20 @@ export const dict = {
   nfcWriteSuccess: { bn: 'NFC ট্যাগে ঠিকানা সফলভাবে লেখা হয়েছে!', en: 'Node URL written to NFC tag successfully!' },
   nfcWriteFailure: { bn: 'NFC ট্যাগে লিখতে ব্যর্থ হয়েছে।', en: 'Failed to write to NFC tag.' },
 
-  // Feature G - WebRTC Hotspot Sync
-  webrtcSyncTitle: { bn: 'সরাসরি WebRTC সিঙ্ক (হটস্পট)', en: 'Direct WebRTC sync (Hotspot)' },
-  webrtcSyncHint: { bn: 'একই হটস্পটে থাকা দুই ফোনের মধ্যে কোনো ল্যাপটপ ছাড়াই সিঙ্ক করুন।', en: 'Sync two phones directly over one hotspot with no laptop.' },
-  webrtcShowOffer: { bn: 'অফার QR দেখান', en: 'Show offer QR' },
-  webrtcScanOffer: { bn: 'অফার QR স্ক্যান করুন', en: 'Scan offer QR' },
-  webrtcShowAnswer: { bn: 'উত্তর QR দেখান', en: 'Show answer QR' },
-  webrtcScanAnswer: { bn: 'উত্তর QR স্ক্যান করুন', en: 'Scan answer QR' },
+  // Native Android Field Edition
+  nearbySyncTitle: { bn: '📻 কাছে থাকা ডিভাইস (Nearby Sync)', en: '📻 Nearby sync (Offline Peer Discovery)' },
+  nearbySyncHint: { bn: 'কোনো ইন্টারনেট ছাড়াই কাছে থাকা অন্য সেতু অ্যাপের সাথে সরাসরি সিঙ্ক করুন।', en: 'Sync events directly with other nearby Setu apps with zero internet.' },
+  nearbySyncSearching: { bn: 'কাছের ফোন খোঁজা হচ্ছে...', en: 'Searching for nearby devices...' },
+  nearbySyncConnect: { bn: 'সংযোগ করুন', en: 'Connect' },
+  nearbySyncConnected: { bn: 'সংযুক্ত হয়েছে', en: 'Connected' },
+  nearbySyncTransferring: { bn: 'তথ্য আদান-প্রদান চলছে...', en: 'Transferring data...' },
+  hubModeTitle: { bn: '🌐 ফোন স্থানীয় নোড (Hub Mode)', en: '🌐 Phone Local Node (Hub Mode)' },
+  hubModeHint: { bn: 'আপনার ফোনকে ওয়াই-ফাই হটস্পট নোড বানান যাতে যেকোনো ডিভাইস ব্রাউজার দিয়ে সিঙ্ক করতে পারে।', en: 'Turn your phone into a local Wi-Fi node so any device can sync via browser.' },
+  courierModeTitle: { bn: '🎒 ব্যাকগ্রাউন্ড কুরিয়ার মোড (Courier Mode)', en: '🎒 Background Courier Mode' },
+  courierModeHint: { bn: 'পাস দিয়ে চলে যাওয়া অন্য সেতু ব্যবহারকারীদের সাথে স্বয়ংক্রিয়ভাবে খবর আদান-প্রদান করে।', en: 'Automatically exchanges crisis news with Setu users you pass by.' },
+  smsGatewayTitle: { bn: '📱 SMS গেটওয়ে মোড (Field Edition)', en: '📱 SMS Gateway Mode (Field Edition)' },
+  smsGatewayHint: { bn: 'বাটন ফোনের ব্যবহারকারীদের সাধারণ SMS সেতুর নেটওয়ার্কে নিয়ে আসুন।', en: 'Bridge feature-phone users to the Setu network via SMS.' },
+  backupStatusTitle: { bn: '💾 স্বয়ংক্রিয় ব্যাকআপ:', en: '💾 Automatic Backup:' },
 } as const satisfies Record<string, Entry>;
 
 export type DictKey = keyof typeof dict;

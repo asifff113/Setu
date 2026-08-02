@@ -292,6 +292,14 @@ app.post('/api/sms/inbound', async (c) => {
   return c.json(json, status as 200 | 400);
 });
 
+// GET /api/sms/outbound — authenticated pull endpoint for phone SMS gateways
+app.get('/api/sms/outbound', (c) => {
+  if (!smsAuthOk(c)) {
+    return c.json({ ok: false, error: 'unauthorized' }, 401);
+  }
+  return c.json({ ok: true, messages: [] });
+});
+
 // Attachments are content-addressed and deliberately separate from the signed
 // event stream. They never enter QR/chirp/SMS packets; devices fetch them only
 // after an explicit tap. The hash is verified before storage, making PUT

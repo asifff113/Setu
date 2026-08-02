@@ -537,6 +537,147 @@ export function SyncScreen() {
         )}
       </section>
 
+      {/* Native Features (rendered only when running in Capacitor APK) */}
+      {isNative() && (
+        <>
+          {/* Phase N2: Nearby Sync Section */}
+          <section className="rounded-2xl border border-accent/30 bg-accent/5 p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-accent">
+              {t('nearbySyncTitle')}
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-muted">{t('nearbySyncHint')}</p>
+            <div className="mt-3 flex gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const { NearbySyncPlugin } = await import('../lib/nearbySync');
+                    await NearbySyncPlugin.start({ endpointName: author ? author.slice(0, 10) : 'Setu Device' });
+                    setFileMsg({ tone: 'ok', text: t('nearbySyncSearching') });
+                  } catch {
+                    setFileMsg({ tone: 'err', text: 'Nearby Sync failed to start' });
+                  }
+                }}
+                className="min-h-12 flex-1 rounded-xl bg-accent py-3 text-sm font-semibold text-white active:opacity-90"
+              >
+                {t('nearbySyncConnect')}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const { NearbySyncPlugin } = await import('../lib/nearbySync');
+                    await NearbySyncPlugin.stop();
+                    setFileMsg(null);
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+                className="min-h-12 rounded-xl border border-line bg-surface py-3 px-4 text-sm font-semibold text-ink active:opacity-80"
+              >
+                {t('close')}
+              </button>
+            </div>
+          </section>
+
+          {/* Phase N9: Hub Mode Section */}
+          <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              {t('hubModeTitle')}
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-muted">{t('hubModeHint')}</p>
+            <div className="mt-3 flex gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const { HubModePlugin } = await import('../lib/hubMode');
+                    const bundleBytes = await encodeBundle(filterForBundle(events, 'all', myGh));
+                    let binary = '';
+                    for (let i = 0; i < bundleBytes.length; i++) {
+                      binary += String.fromCharCode(bundleBytes[i]);
+                    }
+                    await HubModePlugin.updateHubBundle({ base64: btoa(binary) });
+                    const res = await HubModePlugin.startHub();
+                    setFileMsg({ tone: 'ok', text: `Hub Active: ${res.url} (SSID: ${res.ssid})` });
+                  } catch {
+                    setFileMsg({ tone: 'err', text: 'Hub Mode failed' });
+                  }
+                }}
+                className="min-h-12 flex-1 rounded-xl bg-accent py-3 text-sm font-semibold text-white active:opacity-90"
+              >
+                Start Local Hub
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const { HubModePlugin } = await import('../lib/hubMode');
+                    await HubModePlugin.stopHub();
+                    setFileMsg(null);
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+                className="min-h-12 rounded-xl border border-line bg-surface-2 py-3 px-4 text-sm font-semibold text-ink"
+              >
+                Stop Hub
+              </button>
+            </div>
+          </section>
+
+          {/* Phase N3: Courier Mode Section */}
+          <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              {t('courierModeTitle')}
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-muted">{t('courierModeHint')}</p>
+            <div className="mt-3 flex gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const { CourierPlugin } = await import('../lib/courier');
+                    await CourierPlugin.startCourier();
+                    setFileMsg({ tone: 'ok', text: 'Courier Mode active in background' });
+                  } catch {
+                    setFileMsg({ tone: 'err', text: 'Courier Mode failed' });
+                  }
+                }}
+                className="min-h-12 flex-1 rounded-xl bg-surface-2 border border-line py-3 text-sm font-semibold text-ink"
+              >
+                Enable Courier Mode
+              </button>
+            </div>
+          </section>
+
+          {/* Phase N5: Backup Section */}
+          <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              {t('backupStatusTitle')}
+            </p>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-xs text-muted">Automatic local database backups</span>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const { performAutoBackup } = await import('../lib/backup');
+                    const ts = await performAutoBackup();
+                    if (ts) setFileMsg({ tone: 'ok', text: `Backup created at ${new Date(ts).toLocaleTimeString()}` });
+                  } catch {
+                    setFileMsg({ tone: 'err', text: 'Backup failed' });
+                  }
+                }}
+                className="rounded-lg bg-surface-2 border px-3 py-1.5 text-xs font-semibold text-ink"
+              >
+                Backup Now
+              </button>
+            </div>
+          </section>
+        </>
+      )}
+
       {/* Feature G: Direct WebRTC Sync Section */}
       <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">
