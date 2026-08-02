@@ -5,7 +5,7 @@ import { defineConfig } from 'vite';
 import { VitePWA, type ManifestOptions } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   test: {
     coverage: {
       provider: 'v8',
@@ -24,6 +24,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      disable: mode === 'native',
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',

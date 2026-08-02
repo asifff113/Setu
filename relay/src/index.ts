@@ -206,6 +206,18 @@ app.get('/node-qr', async (c) => c.html(await nodeQrPage(port)));
 // GET /lite — zero-JS read-only board (2G / Opera Mini fallback).
 app.get('/lite', (c) => c.html(litePage(store)));
 
+// GET /setu.apk — serve field-edition Android APK for offline distribution.
+const APK_PATH = process.env.APK_PATH ?? resolve(__dirname, '../../app/android/app/build/outputs/apk/field/release/app-field-release.apk');
+app.get('/setu.apk', (c) => {
+  if (!existsSync(APK_PATH)) {
+    return c.text('APK file not found on relay server', 404);
+  }
+  const apkBytes = readFileSync(APK_PATH);
+  c.header('content-type', 'application/vnd.android.package-archive');
+  c.header('content-disposition', 'attachment; filename="setu-field.apk"');
+  return c.body(Uint8Array.from(apkBytes));
+});
+
 app.get('/dashboard', (c) => {
   if (!coordinatorKey) return c.text('Not found', 404);
   if (!coordinatorAuthOk(c)) {

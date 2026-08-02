@@ -16,6 +16,8 @@
     "dev:relay": "npm run dev -w relay",
     "node:local": "npm run build -w app && npm run start -w relay",
     "build": "npm run build -w app",
+    "build:native": "npm run build:native -w app",
+    "cap:sync": "npm run cap:sync -w app",
     "build:relay": "npm run build -w relay",
     "test": "npm run test -w shared && npm run test -w app && npm run test -w relay",
     "test:relay": "npm run test -w relay",

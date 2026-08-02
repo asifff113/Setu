@@ -13,11 +13,17 @@
  * hotspot demo path. See README "Sync".
  */
 
+import { isNative } from '../lib/platform';
+
 const DEFAULT_NODE_PORT = '8787';
+export const PUBLIC_RELAY_WS_URL = 'wss://setu-relay.fly.dev/ws';
 
 /** Relay WS url derived from the page origin, or null for non-http(s) origins. */
 export function deriveAutoWsUrl(): string | null {
   if (typeof window === 'undefined') return null;
+  if (isNative()) {
+    return PUBLIC_RELAY_WS_URL;
+  }
   const { protocol, host } = window.location;
   if (protocol === 'https:') return `wss://${host}/ws`;
   if (protocol === 'http:') return `ws://${host}/ws`;

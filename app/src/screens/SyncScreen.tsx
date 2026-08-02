@@ -14,6 +14,7 @@ import { useEventsStore } from '../store/eventsStore';
 import { useSyncStore, type SyncStatus } from '../store/syncStore';
 import { isPrivateWsUrl, normalizeNodeUrl, nodeWsToHttpUrl } from '../sync/wsurl';
 import { CoachMark } from '../components/CoachMark';
+import { isNative } from '../lib/platform';
 
 import QRCode from 'qrcode';
 import { processSharedBundle } from '../lib/shareReceive';
@@ -183,8 +184,36 @@ export function SyncScreen() {
       return;
     }
     const bytes = await encodeBundle(selected);
-    const blob = new Blob([bytes as BlobPart], { type: 'application/octet-stream' });
     const name = `setu-${new Date().toISOString().slice(0, 10)}.setu`;
+
+    if (isNative()) {
+      try {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binary);
+
+        const writeRes = await Filesystem.writeFile({
+          path: name,
+          data: base64,
+          directory: Directory.Cache,
+        });
+
+        await Share.share({
+          title: t('syncFileTitle'),
+          files: [writeRes.uri],
+        });
+        return;
+      } catch {
+        // Fall back to standard flow if user cancels or fails
+      }
+    }
+
+    const blob = new Blob([bytes as BlobPart], { type: 'application/octet-stream' });
     const file = new File([blob], name, { type: 'application/octet-stream' });
 
     if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
