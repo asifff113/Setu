@@ -25,6 +25,8 @@ import {
   type ChirpTransmission,
 } from './ggwave';
 
+import { encodeLinkBeamUrl } from '../../lib/linkBeam';
+
 interface ChirpSenderProps {
   events: SetuEvent[];
   author: string | undefined;
@@ -197,7 +199,7 @@ export function ChirpSender({ events, author, onClose }: ChirpSenderProps) {
                 </button>
               )}
 
-              <div className="flex items-center gap-3 text-xs text-white/40">
+              <div className="flex items-center gap-2 text-xs text-white/40">
                 <span>
                   {num(payload.size)} {t('chirpBytes')}
                 </span>
@@ -208,7 +210,37 @@ export function ChirpSender({ events, author, onClose }: ChirpSenderProps) {
                 >
                   {protocol === 'fast' ? t('chirpQuicker') : t('chirpReliable')}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProtocol('fast');
+                    if (!playing) void start('fast');
+                  }}
+                  className="rounded-full bg-accent/30 px-3 py-1.5 font-medium text-accent-light text-white active:opacity-80"
+                >
+                  📢 {t('chirpLoudspeakerTitle')}
+                </button>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!mine) return;
+                  try {
+                    const linkUrl = encodeLinkBeamUrl(mine);
+                    if (typeof navigator.share === 'function') {
+                      void navigator.share({ url: linkUrl, title: t('linkBeamTitle') });
+                    } else {
+                      window.open(`sms:?body=${encodeURIComponent(linkUrl)}`, '_blank');
+                    }
+                  } catch {}
+                }}
+                className="w-full rounded-xl border border-white/20 bg-white/10 py-3 text-sm font-semibold text-white active:opacity-80"
+              >
+                🔗 {t('linkBeamShareAction')}
+              </button>
+              <p className="mt-1 text-xs text-white/60 leading-relaxed max-w-xs">
+                {t('chirpLoudspeakerInstruction')}
+              </p>
             </div>
           </>
         )}

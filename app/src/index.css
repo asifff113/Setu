@@ -139,3 +139,20 @@ button {
 .setu-cluster-label::before {
   display: none !important;
 }
+
+@media print {
+  body > #root > * {
+    display: none !important;
+  }
+  .poster-print {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 2rem;
+    background: white !important;
+    color: black !important;
+  }
+}

@@ -23,6 +23,8 @@ import { useAppStore } from '../store/appStore';
 import { useEventsStore } from '../store/eventsStore';
 import { circleMembers } from '../db/social';
 import type { CircleRow } from '../db/schema';
+import { useBatteryLifeboat } from '../hooks/useBatteryLifeboat';
+import { LifeboatModal } from '../components/LifeboatModal';
 
 const CATEGORIES: SetuCategory[] = ['med', 'rescue', 'food', 'water', 'shelter', 'other'];
 const PERSON_STATUSES: SetuPersonStatus[] = ['missing', 'found', 'seen'];
@@ -148,6 +150,8 @@ export function HomeScreen() {
   const [personAttachment, setPersonAttachment] = useState<SetuAttachment>();
   const [circle, setCircle] = useState<CircleRow[]>([]);
   const shortcutHandled = useRef(false);
+
+  const { triggeredLevel, dismiss: dismissLifeboat } = useBatteryLifeboat();
 
   useEffect(() => {
     if (!toast) return;
@@ -451,6 +455,21 @@ export function HomeScreen() {
             </span>
             <ChevronIcon className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
           </button>
+          <Link
+            to="/panic"
+            className="flex w-full items-center gap-3 rounded-2xl border-2 border-red-600/50 bg-red-950/20 px-4 py-3 text-left shadow-sm transition active:scale-[0.99]"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white font-bold text-xl">
+              🚨
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold text-red-500">{t('panicTitle')}</span>
+              <span className="mt-0.5 block text-xs leading-snug text-muted">
+                {t('panicSubtitle')}
+              </span>
+            </span>
+            <ChevronIcon className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+          </Link>
         </div>
       </section>
 
@@ -726,6 +745,10 @@ export function HomeScreen() {
           </div>
         </div>
       </BottomSheet>
+
+      {triggeredLevel !== null && (
+        <LifeboatModal level={triggeredLevel} onDismiss={dismissLifeboat} />
+      )}
     </div>
   );
 }

@@ -21,6 +21,8 @@ const SyncScreen = lazy(() => import('./screens/SyncScreen').then((m) => ({ defa
 const InfoScreen = lazy(() => import('./screens/InfoScreen').then((m) => ({ default: m.InfoScreen })));
 const ManualScreen = lazy(() => import('./screens/ManualScreen').then((m) => ({ default: m.ManualScreen })));
 const PublishScreen = lazy(() => import('./screens/PublishScreen').then((m) => ({ default: m.PublishScreen })));
+const PanicScreen = lazy(() => import('./screens/PanicScreen').then((m) => ({ default: m.PanicScreen })));
+const LinkBeamScreen = lazy(() => import('./screens/LinkBeamScreen').then((m) => ({ default: m.LinkBeamScreen })));
 
 function ScreenFallback() {
   return (
@@ -86,8 +88,10 @@ export default function App() {
             <Route path="sync" element={<Navigate to="/connect" replace />} />
             <Route path="info" element={<Navigate to="/more" replace />} />
           </Route>
-          {/* Hidden: not in the tab bar, reached only by typing the URL. */}
+          {/* Hidden: not in the tab bar, reached only by URL or shortcut. */}
           <Route path="publish" element={<PublishScreen />} />
+          <Route path="panic" element={<PanicScreen />} />
+          <Route path="b" element={<LinkBeamScreen />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

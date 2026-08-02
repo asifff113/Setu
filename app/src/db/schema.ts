@@ -46,8 +46,22 @@ export interface CircleRow {
   addedAt: number;
 }
 
+export interface GuestIdentityRow {
+  key: 'guest_identity';
+  secretKey: Uint8Array;
+  publicKey: Uint8Array;
+  author: string;
+  name: string;
+  createdAt: number;
+}
+
+export interface ActiveKeyRow {
+  key: 'active_identity_slot';
+  slot: 'primary' | 'guest';
+}
+
 /** Singleton rows in the `meta` key-value table, discriminated by `key`. */
-export type MetaRow = IdentityRow | SettingsRow;
+export type MetaRow = IdentityRow | GuestIdentityRow | ActiveKeyRow | SettingsRow;
 
 /**
  * Setu's local database.

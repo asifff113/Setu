@@ -12,8 +12,17 @@ import { timeAgo, toBnDigits } from '../lib/time';
 import { useAppStore } from '../store/appStore';
 import { useEventsStore } from '../store/eventsStore';
 import { useSyncStore, type SyncStatus } from '../store/syncStore';
-import { isPrivateWsUrl, normalizeNodeUrl } from '../sync/wsurl';
+import { isPrivateWsUrl, normalizeNodeUrl, nodeWsToHttpUrl } from '../sync/wsurl';
 import { CoachMark } from '../components/CoachMark';
+
+import QRCode from 'qrcode';
+import { processSharedBundle } from '../lib/shareReceive';
+import { decodePosterPayload, encodePosterPayload, POSTER_PREFIX } from '../lib/poster';
+import {
+  DirectWebRtcSync,
+  WEBRTC_ANSWER_PREFIX,
+  WEBRTC_OFFER_PREFIX,
+} from '../lib/webrtcSync';
 
 const BeamReceiver = lazy(() => import('../sync/beam/BeamReceiver').then((m) => ({ default: m.BeamReceiver })));
 const BeamSender = lazy(() => import('../sync/beam/BeamSender').then((m) => ({ default: m.BeamSender })));
@@ -59,9 +68,86 @@ export function SyncScreen() {
   const [fileMsg, setFileMsg] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
+  const [posterFilter, setPosterFilter] = useState<BundleFilter>('area');
+  const [posterDataUrl, setPosterDataUrl] = useState<string>('');
+  const [posterEventCount, setPosterEventCount] = useState<number>(0);
+  const [posterTimestamp, setPosterTimestamp] = useState<string>('');
+
   useEffect(() => {
-    void refreshStats();
-  }, [refreshStats]);
+    const selected = filterForBundle(events, posterFilter, myGh);
+    void encodePosterPayload(selected).then(({ payload, count }) => {
+      setPosterEventCount(count);
+      setPosterTimestamp(new Date().toLocaleTimeString());
+      if (payload) {
+        void QRCode.toDataURL(payload, { errorCorrectionLevel: 'L', width: 512, margin: 2 }).then(
+          setPosterDataUrl,
+        );
+      } else {
+        setPosterDataUrl('');
+      }
+    });
+  }, [events, posterFilter, myGh]);
+
+  const [nfcStatus, setNfcStatus] = useState<'idle' | 'writing' | 'success' | 'failure'>('idle');
+  const supportsNfc = typeof window !== 'undefined' && 'NDEFReader' in window;
+
+  const [webrtcSync, setWebrtcSync] = useState<DirectWebRtcSync | null>(null);
+  const [webrtcQrUrl, setWebrtcQrUrl] = useState<string>('');
+  const [webrtcStep, setWebrtcStep] = useState<'idle' | 'offer' | 'answer' | 'connected'>('idle');
+
+  async function startWebrtcOffer() {
+    const rtc = new DirectWebRtcSync();
+    setWebrtcSync(rtc);
+    rtc.onReceiveBundle = async (res) => {
+      await refreshEvents();
+      void refreshStats();
+      setFileMsg({
+        tone: 'ok',
+        text: `WebRTC Sync — ${t('beamNew')}: ${toBnDigits(res.added)}, ${t('beamKnown')}: ${toBnDigits(res.known)}`,
+      });
+      setWebrtcStep('connected');
+    };
+    const offerPayload = await rtc.createOffer();
+    const dataUrl = await QRCode.toDataURL(offerPayload, { errorCorrectionLevel: 'L', width: 400 });
+    setWebrtcQrUrl(dataUrl);
+    setWebrtcStep('offer');
+  }
+
+  async function handleNfcWrite() {
+    if (!nodeUrl || !supportsNfc) return;
+    setNfcStatus('writing');
+    try {
+      const httpUrl = nodeWsToHttpUrl(nodeUrl);
+      const ndef = new (window as any).NDEFReader();
+      await ndef.write({
+        records: [{ recordType: 'url', data: httpUrl }],
+      });
+      setNfcStatus('success');
+    } catch {
+      setNfcStatus('failure');
+    }
+  }
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('shared') === '1') {
+      url.searchParams.delete('shared');
+      window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+
+      void processSharedBundle().then(async (res) => {
+        if (res) {
+          await refreshEvents();
+          await refreshStats();
+          setFileMsg({
+            tone: 'ok',
+            text: `${t('syncSharedReceived')} — ${t('beamNew')}: ${toBnDigits(res.added)}, ${t('beamKnown')}: ${toBnDigits(res.known)}`,
+          });
+        } else {
+          setFileMsg({ tone: 'err', text: t('syncFileFailed') });
+        }
+      });
+    }
+  }, [refreshEvents, refreshStats, t]);
 
   const insecureNodeWarning = useMemo(() => {
     const url = normalizeNodeUrl(nodeInput);
@@ -242,6 +328,27 @@ export function SyncScreen() {
             >
               {t('syncNodeDisconnect')}
             </button>
+            {supportsNfc && (
+              <div className="flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void handleNfcWrite()}
+                  disabled={nfcStatus === 'writing'}
+                  className="min-h-12 rounded-xl bg-accent py-3 text-sm font-semibold text-white active:opacity-90 disabled:opacity-50"
+                >
+                  📱 {t('nfcWriteButton')}
+                </button>
+                {nfcStatus === 'writing' && (
+                  <p className="text-xs text-amber-500 font-medium">{t('nfcWritingPrompt')}</p>
+                )}
+                {nfcStatus === 'success' && (
+                  <p className="text-xs text-safe font-medium">{t('nfcWriteSuccess')}</p>
+                )}
+                {nfcStatus === 'failure' && (
+                  <p className="text-xs text-need font-medium">{t('nfcWriteFailure')}</p>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className="mt-3 flex flex-col gap-3">
@@ -336,6 +443,119 @@ export function SyncScreen() {
         />
       </section>
 
+      {/* Feature D: Printable Poster QR Section */}
+      <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          {t('posterTitle')}
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-muted">{t('posterHint')}</p>
+
+        <div className="mt-3 flex gap-1.5 rounded-xl bg-surface-2 p-1">
+          {EXPORT_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => setPosterFilter(f.value)}
+              className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-colors ${
+                posterFilter === f.value ? 'bg-accent text-white' : 'text-muted'
+              }`}
+            >
+              {t(f.key)}
+            </button>
+          ))}
+        </div>
+
+        {posterDataUrl ? (
+          <div className="mt-4 flex flex-col items-center gap-3">
+            {/* Screen Preview */}
+            <div className="rounded-2xl border border-line bg-white p-3 shadow-inner text-center">
+              <img src={posterDataUrl} alt="Poster QR Code" className="mx-auto h-48 w-48 block" />
+              <p className="mt-2 text-xs font-semibold text-black">
+                {t('posterEventCount')} {toBnDigits(posterEventCount)}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="min-h-12 w-full rounded-xl bg-accent py-3 text-sm font-semibold text-white active:opacity-90"
+            >
+              🖨️ {t('posterPrintButton')}
+            </button>
+
+            {/* Print View Wrapper */}
+            <div className="hidden poster-print">
+              <div className="flex flex-col items-center text-center p-8 border-4 border-black rounded-3xl">
+                <h1 className="text-4xl font-extrabold text-black">সেতু Setu</h1>
+                <p className="text-lg font-semibold text-gray-700 mt-1">
+                  Crisis Communication Dead-Drop Poster
+                </p>
+                <div className="my-6 border-2 border-black p-4 rounded-2xl bg-white">
+                  <img src={posterDataUrl} alt="Poster QR" className="w-96 h-96 block" />
+                </div>
+                <p className="text-xl font-bold text-black max-w-md leading-relaxed">
+                  {t('posterScanInstruction')}
+                </p>
+                <div className="mt-6 text-sm text-gray-600 flex justify-between w-full max-w-md border-t pt-4">
+                  <span>{t('posterEventCount')} {posterEventCount}</span>
+                  <span>{t('posterGeneratedAt')} {posterTimestamp}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="mt-3 text-xs text-muted">{t('syncExportEmpty')}</p>
+        )}
+      </section>
+
+      {/* Feature G: Direct WebRTC Sync Section */}
+      <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          📡 {t('webrtcSyncTitle')}
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-muted">{t('webrtcSyncHint')}</p>
+
+        {webrtcStep === 'offer' && webrtcQrUrl && (
+          <div className="mt-3 flex flex-col items-center text-center gap-2">
+            <img src={webrtcQrUrl} alt="Offer QR" className="h-44 w-44 rounded-xl border bg-white p-2" />
+            <p className="text-xs font-medium text-ink">{t('webrtcShowOffer')}</p>
+            <button
+              type="button"
+              onClick={() => setScanning(true)}
+              className="mt-2 min-h-10 px-4 rounded-lg bg-accent text-xs font-semibold text-white"
+            >
+              {t('webrtcScanAnswer')}
+            </button>
+          </div>
+        )}
+
+        {webrtcStep === 'answer' && webrtcQrUrl && (
+          <div className="mt-3 flex flex-col items-center text-center gap-2">
+            <img src={webrtcQrUrl} alt="Answer QR" className="h-44 w-44 rounded-xl border bg-white p-2" />
+            <p className="text-xs font-medium text-ink">{t('webrtcShowAnswer')}</p>
+          </div>
+        )}
+
+        {webrtcStep === 'idle' && (
+          <div className="mt-3 flex gap-3">
+            <button
+              type="button"
+              onClick={() => void startWebrtcOffer()}
+              className="min-h-12 flex-1 rounded-xl bg-accent py-3 text-sm font-semibold text-white active:opacity-90"
+            >
+              {t('webrtcShowOffer')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setScanning(true)}
+              className="min-h-12 flex-1 rounded-xl border border-line bg-surface-2 py-3 text-sm font-semibold text-ink active:opacity-80"
+            >
+              {t('webrtcScanOffer')}
+            </button>
+          </div>
+        )}
+      </section>
+
       <Suspense fallback={null}>
         {beamMode === 'send' && (
           <BeamSender events={events} onClose={() => setBeamMode(null)} />
@@ -352,10 +572,56 @@ export function SyncScreen() {
             title={t('syncNodeScanTitle')}
             hint={t('syncNodeScanHint')}
             onClose={() => setScanning(false)}
-            onResult={(text) => {
+            onResult={async (text) => {
               setScanning(false);
-              setNodeInput(text);
-              submitNode(text);
+              if (text.startsWith(WEBRTC_OFFER_PREFIX)) {
+                try {
+                  const rtc = new DirectWebRtcSync();
+                  setWebrtcSync(rtc);
+                  rtc.onReceiveBundle = async (res) => {
+                    await refreshEvents();
+                    void refreshStats();
+                    setFileMsg({
+                      tone: 'ok',
+                      text: `WebRTC Sync — ${t('beamNew')}: ${toBnDigits(res.added)}, ${t('beamKnown')}: ${toBnDigits(res.known)}`,
+                    });
+                    setWebrtcStep('connected');
+                  };
+                  const answerPayload = await rtc.handleOfferAndCreateAnswer(text);
+                  const dataUrl = await QRCode.toDataURL(answerPayload, { errorCorrectionLevel: 'L', width: 400 });
+                  setWebrtcQrUrl(dataUrl);
+                  setWebrtcStep('answer');
+                  await rtc.sendBundle(filterForBundle(events, 'all', myGh));
+                } catch {
+                  setFileMsg({ tone: 'err', text: t('syncFileFailed') });
+                }
+              } else if (text.startsWith(WEBRTC_ANSWER_PREFIX)) {
+                try {
+                  if (webrtcSync) {
+                    await webrtcSync.handleAnswer(text);
+                    await webrtcSync.sendBundle(filterForBundle(events, 'all', myGh));
+                    setWebrtcStep('connected');
+                  }
+                } catch {
+                  setFileMsg({ tone: 'err', text: t('syncFileFailed') });
+                }
+              } else if (text.startsWith(POSTER_PREFIX)) {
+                try {
+                  const imported = await decodePosterPayload(text);
+                  const res = await ingestEvents(imported);
+                  await refreshEvents();
+                  void refreshStats();
+                  setFileMsg({
+                    tone: 'ok',
+                    text: `${t('posterTitle')} — ${t('beamNew')}: ${toBnDigits(res.added)}, ${t('beamKnown')}: ${toBnDigits(res.known)}`,
+                  });
+                } catch {
+                  setFileMsg({ tone: 'err', text: t('syncFileFailed') });
+                }
+              } else {
+                setNodeInput(text);
+                submitNode(text);
+              }
             }}
           />
         )}

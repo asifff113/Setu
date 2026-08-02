@@ -67,7 +67,13 @@ export function isPrivateWsUrl(url: string | null): boolean {
 }
 
 /** Append the area's 2-char geohash prefix as the room hint `?gh=`. */
+/** Append the area's 2-char geohash prefix as the room hint `?gh=`. */
 export function withGh(url: string, gh: string): string {
   const prefix = gh.slice(0, 2);
   return prefix ? `${url}?gh=${encodeURIComponent(prefix)}` : url;
+}
+
+/** Convert a local node WebSocket URL to its corresponding HTTP landing page URL for NFC/browsers. */
+export function nodeWsToHttpUrl(wsUrl: string): string {
+  return wsUrl.replace(/^ws:/i, 'http:').replace(/^wss:/i, 'https:').replace(/\/ws(\?.*)?$/i, '');
 }

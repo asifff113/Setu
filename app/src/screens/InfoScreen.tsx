@@ -48,7 +48,11 @@ export function InfoScreen() {
   const [areaCode, setAreaCode] = useState(settings?.areaCode ?? '');
   const [locality, setLocality] = useState(settings?.locality ?? '');
   const [saving, setSaving] = useState(false);
-  const [profileMessage, setProfileMessage] = useState<'saved' | 'error' | null>(null);
+  const isGuest = useAppStore((state) => state.isGuest);
+  const enableGuestMode = useAppStore((state) => state.enableGuestMode);
+  const exitGuestMode = useAppStore((state) => state.exitGuestMode);
+  const [guestInputName, setGuestInputName] = useState('');
+  const [showGuestForm, setShowGuestForm] = useState(false);
 
   const currentArea = useMemo(
     () => (settings?.areaCode ? findAreaByCode(settings.areaCode) : undefined),
@@ -205,6 +209,68 @@ export function InfoScreen() {
           <p className={`mt-3 text-sm font-medium ${profileMessage === 'saved' ? 'text-safe' : 'text-need'}`}>
             {profileMessage === 'saved' ? t('infoProfileSaved') : t('errorGeneric')}
           </p>
+        )}
+      </section>
+
+      {/* Feature I: Guest Identity (Borrowed phone mode) */}
+      <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          👤 {t('guestModeLendPhone')}
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-muted">{t('guestModeHint')}</p>
+
+        {isGuest ? (
+          <div className="mt-3 flex flex-col gap-2">
+            <p className="text-sm font-bold text-amber-600">
+              {t('guestModeActiveBanner')}
+            </p>
+            <button
+              type="button"
+              onClick={() => void exitGuestMode()}
+              className="min-h-12 w-full rounded-xl bg-accent py-3 text-sm font-semibold text-white active:opacity-90"
+            >
+              {t('guestModeSwitchBack')}
+            </button>
+          </div>
+        ) : showGuestForm ? (
+          <div className="mt-3 flex flex-col gap-3">
+            <input
+              value={guestInputName}
+              onChange={(e) => setGuestInputName(e.target.value)}
+              placeholder={t('onboardNamePlaceholder')}
+              maxLength={32}
+              className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowGuestForm(false)}
+                className="min-h-11 flex-1 rounded-xl border border-line bg-surface-2 py-2 text-xs font-semibold text-ink"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={!guestInputName.trim()}
+                onClick={async () => {
+                  await enableGuestMode(guestInputName);
+                  setShowGuestForm(false);
+                  setGuestInputName('');
+                }}
+                className="min-h-11 flex-1 rounded-xl bg-accent py-2 text-xs font-semibold text-white disabled:opacity-40"
+              >
+                {t('save')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowGuestForm(true)}
+            className="mt-3 min-h-12 w-full rounded-xl border border-line bg-surface-2 py-3 text-sm font-semibold text-ink active:opacity-80"
+          >
+            {t('guestModeLendPhone')}
+          </button>
         )}
       </section>
 

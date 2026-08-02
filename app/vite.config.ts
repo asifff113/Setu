@@ -2,7 +2,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
-import { VitePWA } from 'vite-plugin-pwa';
+import { VitePWA, type ManifestOptions } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -24,6 +24,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
@@ -59,42 +62,28 @@ export default defineConfig({
             url: '/?action=help',
             icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }],
           },
-        ],
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        // App must still load from cache with the network unreachable.
-        navigateFallback: '/index.html',
-        // …but these are relay-owned routes, not SPA routes. Without this, an
-        // installed PWA could serve index.html over a navigation to /lite or the
-        // SMS simulator instead of letting the relay answer. API/health/ws are
-        // never navigations, but denylisting them is belt-and-suspenders.
-        navigateFallbackDenylist: [
-          /^\/lite/,
-          /^\/sms-sim/,
-          /^\/node-qr/,
-          /^\/api\//,
-          /^\/healthz/,
-          /^\/ws/,
-        ],
-        runtimeCaching: [
           {
-            // OSM raster tiles (Map screen). CacheFirst + a bounded LRU so a
-            // laptop/phone that has browsed an area once can show it again
-            // with no network; the 200-tile cap keeps this from growing
-            // unbounded on a device that pans around the whole country.
-            urlPattern: /^https:\/\/[abc]\.tile\.openstreetmap\.org\/.*/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'osm-tiles',
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
+            name: 'Panic Mode',
+            short_name: 'Panic',
+            url: '/panic',
+            icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }],
           },
         ],
+        share_target: {
+          action: '/share-receive',
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: {
+            files: [{ name: 'bundle', accept: ['application/octet-stream', '.setu'] }],
+          },
+        },
+      } as Partial<ManifestOptions> & { share_target?: unknown },
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
       },
       devOptions: {
         enabled: true,
+        type: 'module',
       },
     }),
   ],
