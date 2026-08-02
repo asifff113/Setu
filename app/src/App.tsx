@@ -1,7 +1,10 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { db } from './db/schema';
+import { useI18n } from './i18n';
 import { tryDemo } from './lib/demoTrigger';
+import { isNative } from './lib/platform';
 import { BoardScreen } from './screens/BoardScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
@@ -33,6 +36,7 @@ function ScreenFallback() {
 }
 
 export default function App() {
+  const { t } = useI18n();
   const ready = useAppStore((s) => s.ready);
   const onboarded = useAppStore((s) => s.settings?.onboarded ?? false);
   const appearance = useAppStore((state) => state.settings);
@@ -58,6 +62,47 @@ export default function App() {
       await processCourierQueue();
     })();
   }, [ready]);
+
+  // N1 (share sheet while already running) + N5 (background auto-backup):
+  // the effect above only fires once on cold start, which misses an intent
+  // shared to Setu while it's already open (MainActivity.onNewIntent stashes
+  // it, but nothing re-asks until the app is next foregrounded).
+  useEffect(() => {
+    if (!ready || !isNative()) return;
+    let removeListener: (() => void) | undefined;
+    void (async () => {
+      const { App: CapacitorApp } = await import('@capacitor/app');
+      const handle = await CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) {
+          void import('./lib/sharedBundle').then((m) => m.checkAndProcessSharedBundle());
+        } else {
+          void import('./lib/backup').then((m) => m.performAutoBackup());
+        }
+      });
+      removeListener = () => handle.remove();
+    })();
+    return () => removeListener?.();
+  }, [ready]);
+
+  // N5 restore prompt: only reachable pre-onboarding with an empty log, so it
+  // can never clobber real data — same gate the spec requires.
+  useEffect(() => {
+    if (!ready || onboarded || !isNative()) return;
+    void (async () => {
+      const [{ checkBackupExists, restoreBackup }, eventCount] = await Promise.all([
+        import('./lib/backup'),
+        db.events.count(),
+      ]);
+      if (eventCount > 0) return;
+      const { exists, lastBackupAt } = await checkBackupExists();
+      if (!exists) return;
+      const label = lastBackupAt ? new Date(lastBackupAt).toLocaleString() : '';
+      if (window.confirm(`${t('restorePromptTitle')}${label ? ` (${label})` : ''}`)) {
+        const restored = await restoreBackup();
+        if (restored) window.location.reload();
+      }
+    })();
+  }, [ready, onboarded, t]);
 
   useEffect(() => {
     if (!appearance) return;

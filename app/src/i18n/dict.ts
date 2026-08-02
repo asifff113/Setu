@@ -697,6 +697,15 @@ export const dict = {
   storageProtected: { bn: 'সংরক্ষণাগার: সুরক্ষিত (ব্রাউজার ডেটা মুছবে না)', en: 'Storage: protected' },
   storageBestEffort: { bn: 'সংরক্ষণাগার: সাধারণ (ব্রাউজার ডেটা মুছতে পারে)', en: 'Storage: best-effort (browser may reclaim it)' },
 
+  // N5 - Durable backup (native only)
+  lastBackupLabel: { bn: 'সর্বশেষ ব্যাকআপ', en: 'Last backup' },
+  lastBackupAuto: { bn: 'স্বয়ংক্রিয়', en: 'automatic' },
+  lastBackupNever: { bn: 'সর্বশেষ ব্যাকআপ: এখনও হয়নি', en: 'Last backup: none yet' },
+  restorePromptTitle: {
+    bn: 'এই ফোনে একটি পুরনো ব্যাকআপ পাওয়া গেছে। এটি পুনরুদ্ধার করবেন?',
+    en: 'A backup from this phone was found. Restore it?',
+  },
+
   // Feature B - Bluetooth / Quick share
   syncExportBluetoothHint: {
     bn: 'শেয়ার শিটের মাধ্যমে এটি ইন্টারনেট ছাড়াই পাঠানো যাবে — অন্য ফোনের অ্যান্ড্রয়েডে ব্লুটুথ বা Quick Share বেছে নিন।',

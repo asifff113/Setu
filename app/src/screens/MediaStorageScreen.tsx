@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { db, type BlobCacheRow } from '../db/schema';
 import { useI18n } from '../i18n';
+import { isNative } from '../lib/platform';
 
 export function MediaStorageScreen() {
   const { t } = useI18n();
   const [persisted, setPersisted] = useState<boolean | null>(null);
   const [rows, setRows] = useState<BlobCacheRow[]>([]);
+  const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   const total = useMemo(() => rows.reduce((sum, row) => sum + row.blob.size, 0), [rows]);
 
   async function refresh(): Promise<void> {
@@ -13,6 +15,11 @@ export function MediaStorageScreen() {
     if (typeof navigator !== 'undefined' && navigator.storage?.persisted) {
       const isPersisted = await navigator.storage.persisted().catch(() => false);
       setPersisted(isPersisted);
+    }
+    if (isNative()) {
+      const { checkBackupExists } = await import('../lib/backup');
+      const res = await checkBackupExists();
+      setLastBackupAt(res.lastBackupAt ?? null);
     }
   }
 
@@ -33,6 +40,13 @@ export function MediaStorageScreen() {
       {persisted !== null && (
         <div className="rounded-xl border border-line bg-surface p-3 text-xs text-muted">
           {persisted ? t('storageProtected') : t('storageBestEffort')}
+        </div>
+      )}
+      {isNative() && (
+        <div className="rounded-xl border border-line bg-surface p-3 text-xs text-muted">
+          {lastBackupAt
+            ? `${t('lastBackupLabel')}: ${new Date(lastBackupAt).toLocaleString()} — ${t('lastBackupAuto')}`
+            : t('lastBackupNever')}
         </div>
       )}
       {rows.map((row) => (
